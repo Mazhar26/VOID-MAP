@@ -23,7 +23,22 @@ WEIGHTS = {
     "loud": 0.1
 }
 
+# Confidence thresholds based on signal count
+CONFIDENCE_THRESHOLD_LOW = 5
+CONFIDENCE_THRESHOLD_HIGH = 20
+
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
+}
+
 def lambda_handler(event, context):
+    # Handle CORS preflight
+    http_method = event.get("httpMethod") or event.get("requestContext", {}).get("http", {}).get("method", "")
+    if http_method == "OPTIONS":
+        return _response(200, {"message": "OK"})
+
     geo = event.get("pathParameters", {}).get("geo")
 
     if not geo or len(geo) < 3:
@@ -32,13 +47,22 @@ def lambda_handler(event, context):
     now = int(time.time())
     window_start = now - WINDOW_SECONDS
 
-    response = table.query(
-        KeyConditionExpression=
+    # Query with pagination to fetch all matching items
+    items = []
+    query_params = {
+        "KeyConditionExpression":
             Key("geo").eq(geo) &
             Key("ts").gte(window_start)
-    )
+    }
 
-    items = response.get("Items", [])
+    while True:
+        response = table.query(**query_params)
+        items.extend(response.get("Items", []))
+
+        last_key = response.get("LastEvaluatedKey")
+        if not last_key:
+            break
+        query_params["ExclusiveStartKey"] = last_key
 
     if not items:
         return _ok({
@@ -56,8 +80,8 @@ def lambda_handler(event, context):
     quiet_score = round(score_sum / len(items), 2)
 
     confidence = (
-        "high" if len(items) > 20 else
-        "medium" if len(items) > 5 else
+        "high" if len(items) > CONFIDENCE_THRESHOLD_HIGH else
+        "medium" if len(items) > CONFIDENCE_THRESHOLD_LOW else
         "low"
     )
 
@@ -68,16 +92,15 @@ def lambda_handler(event, context):
         "window_minutes": 30
     })
 
-def _ok(body):
+def _response(status_code, body):
     return {
-        "statusCode": 200,
+        "statusCode": status_code,
+        "headers": CORS_HEADERS,
         "body": json.dumps(body)
     }
 
+def _ok(body):
+    return _response(200, body)
+
 def _bad_request(msg):
-    return {
-        "statusCode": 400,
-        "body": json.dumps({
-            "error": msg
-        })
-    }
+    return _response(400, {"error": msg})

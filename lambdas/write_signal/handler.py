@@ -8,6 +8,7 @@ Purpose:
 
 import json
 import time
+import uuid
 import boto3
 
 dynamodb = boto3.resource("dynamodb")
@@ -21,11 +22,26 @@ ALLOWED_BUCKETS = {
 }
 
 TTL_SECONDS = 30 * 60  # 30 minutes
+TS_TOLERANCE_SECONDS = 5 * 60  # Allow timestamps within ±5 minutes of server time
+
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS"
+}
 
 def lambda_handler(event, context):
+    # Handle CORS preflight
+    http_method = event.get("httpMethod") or event.get("requestContext", {}).get("http", {}).get("method", "")
+    if http_method == "OPTIONS":
+        return _response(200, {"message": "OK"})
+
     try:
         body = json.loads(event.get("body", "{}"))
+    except json.JSONDecodeError:
+        return _bad_request("Malformed JSON")
 
+    try:
         ts = body.get("ts")
         geo = body.get("geo")
         noise_bucket = body.get("noise_bucket")
@@ -37,18 +53,25 @@ def lambda_handler(event, context):
         if not isinstance(ts, int):
             return _bad_request("Invalid or missing 'ts'")
 
+        # Validate timestamp is within a reasonable window of server time
+        now = int(time.time())
+        if abs(ts - now) > TS_TOLERANCE_SECONDS:
+            return _bad_request("Timestamp is too far from server time")
+
         if not isinstance(geo, str) or len(geo) < 3:
             return _bad_request("Invalid or missing 'geo'")
 
         if noise_bucket not in ALLOWED_BUCKETS:
             return _bad_request("Invalid 'noise_bucket'")
 
-        expires_at = int(time.time()) + TTL_SECONDS
+        expires_at = now + TTL_SECONDS
+        signal_id = uuid.uuid4().hex[:8]
 
         table.put_item(
             Item={
                 "geo": geo,
                 "ts": ts,
+                "signal_id": signal_id,
                 "noise_bucket": noise_bucket,
                 "expires_at": expires_at
             }
@@ -61,20 +84,18 @@ def lambda_handler(event, context):
             "expires_at": expires_at
         })
 
-        return {
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Silence remembered briefly."
-            })
-        }
+        return _response(200, {"message": "Silence remembered briefly."})
 
-    except Exception:
-        return _bad_request("Malformed JSON")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return _response(500, {"error": "Internal server error"})
+
+def _response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": CORS_HEADERS,
+        "body": json.dumps(body)
+    }
 
 def _bad_request(msg):
-    return {
-        "statusCode": 400,
-        "body": json.dumps({
-            "error": msg
-        })
-    }
+    return _response(400, {"error": msg})
