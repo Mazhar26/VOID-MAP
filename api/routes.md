@@ -6,8 +6,9 @@
 https://qlfi30snpa.execute-api.us-east-1.amazonaws.com
 ```
 
-All responses include CORS headers:
+All responses include these headers:
 ```
+Content-Type: application/json
 Access-Control-Allow-Origin: *
 Access-Control-Allow-Headers: Content-Type
 Access-Control-Allow-Methods: POST, GET, OPTIONS

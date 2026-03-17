@@ -59,7 +59,7 @@ VOID-MAP/
 - AWS CLI configured with appropriate credentials
 - A DynamoDB table named `voidmap_ephemeral_signals` with:
   - Partition key: `geo` (String)
-  - Sort key: `ts` (Number)
+  - Sort key: `ts` (String) — composite `"timestamp#uuid"`
   - TTL attribute: `expires_at`
 
 ### Running the Client
@@ -122,4 +122,4 @@ Please follow the project's privacy-first philosophy — no user-identifiable da
 
 ## License
 
-This project is open source.
+This project is licensed under the [MIT License](LICENSE).

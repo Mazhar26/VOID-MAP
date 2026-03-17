@@ -34,8 +34,9 @@ graph TD
 - Captures microphone audio for ~1.2 seconds
 - Computes RMS amplitude and sample variation
 - Classifies into noise buckets: `very_quiet`, `quiet`, `moderate`, `loud`
-- Computes geohash from real GPS coordinates (precision 4)
+- Computes geohash from real GPS coordinates (precision 5, ~5km² tiles)
 - POSTs `{ts, geo, noise_bucket}` to the API
+- Sanitizes all dynamic HTML output to prevent XSS
 - **No audio is recorded or transmitted** — only the classification bucket
 
 ### API Gateway
@@ -46,9 +47,9 @@ graph TD
 ### Write Lambda (`lambdas/write_signal/handler.py`)
 - Validates input: type-checks `ts`, length-checks `geo`, allowlists `noise_bucket`
 - Validates timestamp is within ±5 minutes of server time
-- Generates a unique `signal_id` (UUID) per signal to prevent DynamoDB key collisions
+- Uses composite sort key `ts#signal_id` (UUID) to prevent DynamoDB collisions
 - Stores signal with `expires_at` TTL (30 minutes from now)
-- Logs only non-sensitive fields (geo, bucket, expiry)
+- Structured logging via Python `logging` module (non-sensitive fields only)
 
 ### Read Lambda (`lambdas/read_aggregation/handler.py`)
 - Queries DynamoDB for all signals matching a geohash within the last 30 minutes
@@ -58,7 +59,7 @@ graph TD
 
 ### DynamoDB (`voidmap_ephemeral_signals`)
 - Partition key: `geo` (String) — geohash tile
-- Sort key: `ts` (Number) — Unix timestamp
+- Sort key: `ts` (String) — composite `"timestamp#uuid"` for collision-free writes
 - TTL attribute: `expires_at` — automatically deletes items after 30 minutes
 - No backups, no streams — data is intentionally disposable
 
@@ -83,5 +84,5 @@ Signal created → Stored with 30-min TTL → Queryable while alive → Auto-del
 - **No audio stored** — only noise level categories
 - **No user identity** — no cookies, tokens, or IP logging
 - **Ephemeral by design** — TTL enforces deletion at the infrastructure level
-- **Coarse location** — geohash precision 4 (~40km² tiles)
+- **Coarse location** — geohash precision 5 (~5km² tiles)
 - **Non-sensitive logging** — only geo tile, bucket, and expiry time

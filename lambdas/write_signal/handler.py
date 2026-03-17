@@ -7,9 +7,13 @@ Purpose:
 """
 
 import json
+import logging
 import time
 import uuid
 import boto3
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table("voidmap_ephemeral_signals")
@@ -25,6 +29,7 @@ TTL_SECONDS = 30 * 60  # 30 minutes
 TS_TOLERANCE_SECONDS = 5 * 60  # Allow timestamps within ±5 minutes of server time
 
 CORS_HEADERS = {
+    "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
@@ -38,7 +43,7 @@ def lambda_handler(event, context):
 
     try:
         body = json.loads(event.get("body", "{}"))
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         return _bad_request("Malformed JSON")
 
     try:
@@ -66,19 +71,19 @@ def lambda_handler(event, context):
 
         expires_at = now + TTL_SECONDS
         signal_id = uuid.uuid4().hex[:8]
+        sort_key = f"{ts}#{signal_id}"
 
         table.put_item(
             Item={
                 "geo": geo,
-                "ts": ts,
-                "signal_id": signal_id,
+                "ts": sort_key,
                 "noise_bucket": noise_bucket,
                 "expires_at": expires_at
             }
         )
 
-        # Non-sensitive log
-        print({
+        logger.info({
+            "action": "signal_stored",
             "geo": geo,
             "bucket": noise_bucket,
             "expires_at": expires_at
@@ -87,7 +92,7 @@ def lambda_handler(event, context):
         return _response(200, {"message": "Silence remembered briefly."})
 
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        logger.error(f"Unexpected error: {e}", exc_info=True)
         return _response(500, {"error": "Internal server error"})
 
 def _response(status_code, body):

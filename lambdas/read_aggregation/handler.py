@@ -7,9 +7,13 @@ Purpose:
 """
 
 import json
+import logging
 import time
 import boto3
 from boto3.dynamodb.conditions import Key
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table("voidmap_ephemeral_signals")
@@ -28,6 +32,7 @@ CONFIDENCE_THRESHOLD_LOW = 5
 CONFIDENCE_THRESHOLD_HIGH = 20
 
 CORS_HEADERS = {
+    "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "GET, OPTIONS"
@@ -46,23 +51,30 @@ def lambda_handler(event, context):
 
     now = int(time.time())
     window_start = now - WINDOW_SECONDS
+    sort_key_prefix = str(window_start)
 
-    # Query with pagination to fetch all matching items
-    items = []
-    query_params = {
-        "KeyConditionExpression":
-            Key("geo").eq(geo) &
-            Key("ts").gte(window_start)
-    }
+    try:
+        # Query with pagination to fetch all matching items
+        # Sort key is now "ts#signal_id" string — use gte on the string prefix
+        items = []
+        query_params = {
+            "KeyConditionExpression":
+                Key("geo").eq(geo) &
+                Key("ts").gte(sort_key_prefix)
+        }
 
-    while True:
-        response = table.query(**query_params)
-        items.extend(response.get("Items", []))
+        while True:
+            response = table.query(**query_params)
+            items.extend(response.get("Items", []))
 
-        last_key = response.get("LastEvaluatedKey")
-        if not last_key:
-            break
-        query_params["ExclusiveStartKey"] = last_key
+            last_key = response.get("LastEvaluatedKey")
+            if not last_key:
+                break
+            query_params["ExclusiveStartKey"] = last_key
+
+    except Exception as e:
+        logger.error(f"DynamoDB query failed: {e}", exc_info=True)
+        return _response(500, {"error": "Failed to retrieve data"})
 
     if not items:
         return _ok({

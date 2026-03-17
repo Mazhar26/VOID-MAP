@@ -6,13 +6,13 @@
 
 - [x] DynamoDB table `voidmap_ephemeral_signals` created
   - Partition key: `geo` (String)
-  - Sort key: `ts` (Number)
+  - Sort key: `ts` (String) — composite `"timestamp#uuid"`
   - TTL attribute: `expires_at`
 - [x] API Gateway HTTP API created with routes:
   - `POST /signal` → Write Lambda
   - `GET /quiet/{geo}` → Read Lambda
 - [x] IAM roles and policies for Lambda → DynamoDB access
-- [ ] API Gateway throttling configured for rate limiting
+- [ ] API Gateway throttling configured for rate limiting (recommended: 100 req/s burst, 50 req/s sustained)
 
 ## Notes
 
