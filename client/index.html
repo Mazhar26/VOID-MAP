@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VOID-MAP — Privacy-first mapping of quiet places using ephemeral data.">
+  <title>Void Map — Measure Quiet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-card: rgba(15, 20, 40, 0.75);
+      --bg-card-border: rgba(100, 120, 255, 0.12);
+      --accent: #7c8aff;
+      --accent-glow: rgba(124, 138, 255, 0.35);
+      --accent-light: #a5b0ff;
+      --text-primary: #e8eafc;
+      --text-secondary: #8892b0;
+      --text-muted: #5a6380;
+      --success: #64ffb4;
+      --success-bg: rgba(100, 255, 180, 0.08);
+      --warning: #ffd764;
+      --error: #ff6b8a;
+      --error-bg: rgba(255, 107, 138, 0.08);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient background glow */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -40%;
+      left: -20%;
+      width: 80%;
+      height: 80%;
+      background: radial-gradient(ellipse, rgba(124, 138, 255, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      animation: drift 20s ease-in-out infinite alternate;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -30%;
+      right: -20%;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse, rgba(100, 255, 180, 0.04) 0%, transparent 70%);
+      pointer-events: none;
+      animation: drift 25s ease-in-out infinite alternate-reverse;
+    }
+
+    @keyframes drift {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 30px) scale(1.1); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 420px;
+      width: 90%;
+      padding: 2.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(24px);
+      box-shadow:
+        0 0 80px rgba(124, 138, 255, 0.05),
+        0 25px 60px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .measure-btn {
+      width: 100%;
+      padding: 0.9rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), #6570e0);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .measure-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px var(--accent-glow);
+    }
+
+    .measure-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .measure-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .measure-btn .btn-text {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Ripple on click */
+    .measure-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--x, 50%) var(--y, 50%),
+        rgba(255, 255, 255, 0.3) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .measure-btn:active::after {
+      opacity: 1;
+    }
+
+    /* Status display */
+    .status-area {
+      margin-top: 1.5rem;
+      min-height: 3rem;
+    }
+
+    .status-msg {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .status-msg.measuring {
+      color: var(--accent-light);
+    }
+
+    .status-msg.error {
+      color: var(--error);
+      background: var(--error-bg);
+      padding: 0.7rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 107, 138, 0.15);
+    }
+
+    .status-msg.success {
+      color: var(--success);
+    }
+
+    /* Result card */
+    .result-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-sm);
+      padding: 1.2rem;
+      margin-top: 1rem;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card .label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .result-card .bucket-name {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+    }
+
+    .bucket-very_quiet { color: #64ffb4; }
+    .bucket-quiet { color: #7ccfff; }
+    .bucket-moderate { color: #ffd764; }
+    .bucket-loud { color: #ff6b8a; }
+
+    .result-meta {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .meta-item {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .meta-item span {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      margin-top: 1rem;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* Geo badge */
+    .geo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.6rem;
+      padding: 0.3rem 0.6rem;
+      background: rgba(124, 138, 255, 0.08);
+      border: 1px solid rgba(124, 138, 255, 0.12);
+      border-radius: 6px;
+      font-size: 0.7rem;
+      color: var(--accent-light);
+    }
+
+    .geo-badge .dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    .sent-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--success);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .sent-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Visualizer */
+    .visualizer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 3px;
+      height: 30px;
+      margin-top: 1rem;
+    }
+
+    .visualizer .bar {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: height 0.08s ease;
+      opacity: 0.6;
+    }
+
+    .footer {
+      margin-top: 1.8rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .footer svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">🌑</div>
+      <h1>Void Map</h1>
+    </div>
+    <p class="subtitle">Measure and map the quiet around you. No audio recorded — only silence levels, forgotten in 30 minutes.</p>
+
+    <button class="measure-btn" id="measureBtn" onclick="measure()">
+      <span class="btn-text">Measure Silence</span>
+    </button>
+
+    <div class="status-area" id="statusArea"></div>
+
+    <div class="footer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      Privacy-first · Ephemeral data · No tracking
+    </div>
+  </div>
+
+<script>
+// ─── Configuration ───────────────────────────────────────────
+const CONFIG = {
+  API_URL: "https://qlfi30snpa.execute-api.us-east-1.amazonaws.com/signal",
+  MEASUREMENT_DURATION_MS: 1200,
+  SAMPLE_INTERVAL_MS: 60,
+  GEOHASH_PRECISION: 4
+};
+
+// ─── Geohash Encoder ────────────────────────────────────────
+const BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
+
+function encodeGeohash(lat, lon, precision) {
+  let latRange = [-90, 90];
+  let lonRange = [-180, 180];
+  let hash = "";
+  let bit = 0;
+  let ch = 0;
+  let isLon = true;
+
+  while (hash.length < precision) {
+    const range = isLon ? lonRange : latRange;
+    const val = isLon ? lon : lat;
+    const mid = (range[0] + range[1]) / 2;
+
+    if (val >= mid) {
+      ch |= (1 << (4 - bit));
+      range[0] = mid;
+    } else {
+      range[1] = mid;
+    }
+
+    bit++;
+    if (bit === 5) {
+      hash += BASE32[ch];
+      bit = 0;
+      ch = 0;
+    }
+    isLon = !isLon;
+  }
+  return hash;
+}
+
+// ─── Location Helper ─────────────────────────────────────────
+async function getUserGeohash() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by your browser."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const hash = encodeGeohash(
+          pos.coords.latitude,
+          pos.coords.longitude,
+          CONFIG.GEOHASH_PRECISION
+        );
+        resolve(hash);
+      },
+      (err) => {
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            reject(new Error("Location access denied. Please enable location permissions."));
+            break;
+          case err.POSITION_UNAVAILABLE:
+            reject(new Error("Location information unavailable."));
+            break;
+          case err.TIMEOUT:
+            reject(new Error("Location request timed out. Please try again."));
+            break;
+          default:
+            reject(new Error("Could not determine your location."));
+        }
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+  });
+}
+
+// ─── UI Helpers ──────────────────────────────────────────────
+const statusArea = document.getElementById("statusArea");
+const measureBtn = document.getElementById("measureBtn");
+
+function setStatus(html, className) {
+  statusArea.innerHTML = `<div class="status-msg ${className || ''}">${html}</div>`;
+}
+
+function setMeasuring(show) {
+  measureBtn.disabled = show;
+  measureBtn.querySelector('.btn-text').textContent =
+    show ? "Listening…" : "Measure Silence";
+}
+
+function showVisualizer() {
+  const bars = Array.from({ length: 20 }, () => '<div class="bar" style="height:4px"></div>').join('');
+  return `<div class="visualizer" id="visualizer">${bars}</div>`;
+}
+
+function updateVisualizerBars(rms) {
+  const viz = document.getElementById("visualizer");
+  if (!viz) return;
+  const bars = viz.children;
+  for (let i = 0; i < bars.length; i++) {
+    const h = Math.max(3, Math.min(28, rms * 800 + Math.random() * 10));
+    bars[i].style.height = h + "px";
+  }
+}
+
+function formatBucket(bucket) {
+  return bucket.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── Main Measurement ────────────────────────────────────────
+async function measure() {
+  setMeasuring(true);
+  setStatus("📍 Locating you…", "measuring");
+
+  // 1. Get geohash from real location
+  let geo;
+  try {
+    geo = await getUserGeohash();
+  } catch (locErr) {
+    setStatus(`⚠️ ${locErr.message}`, "error");
+    setMeasuring(false);
+    return;
+  }
+
+  setStatus(
+    `Measuring ambient sound…${showVisualizer()}<div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>`,
+    "measuring"
+  );
+
+  // 2. Capture mic audio
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+  } catch (micErr) {
+    const msg = micErr.name === "NotAllowedError"
+      ? "Microphone access denied. Please allow mic permissions and try again."
+      : "Could not access microphone. Please check your device settings.";
+    setStatus(`🎤 ${msg}`, "error");
+    setMeasuring(false);
+    return;
+  }
+
+  const audioCtx = new AudioContext();
+  const source = audioCtx.createMediaStreamSource(stream);
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
+
+  const data = new Uint8Array(analyser.fftSize);
+  const rmsValues = [];
+  const variationValues = [];
+  const startTime = performance.now();
+
+  // 3. Sample using setInterval instead of busy-wait
+  await new Promise((resolve) => {
+    const interval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+
+      if (elapsed >= CONFIG.MEASUREMENT_DURATION_MS) {
+        clearInterval(interval);
+        resolve();
+        return;
+      }
+
+      // Update progress bar
+      const progressBar = document.getElementById("progressBar");
+      if (progressBar) {
+        progressBar.style.width = `${(elapsed / CONFIG.MEASUREMENT_DURATION_MS) * 100}%`;
+      }
+
+      analyser.getByteTimeDomainData(data);
+
+      let sum = 0;
+      let diffs = 0;
+      for (let i = 1; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        const prev = (data[i - 1] - 128) / 128;
+        sum += v * v;
+        diffs += Math.abs(v - prev);
+      }
+
+      const rms = Math.sqrt(sum / data.length);
+      rmsValues.push(rms);
+      variationValues.push(diffs / data.length);
+
+      updateVisualizerBars(rms);
+    }, CONFIG.SAMPLE_INTERVAL_MS);
+  });
+
+  // 4. Cleanup audio resources
+  stream.getTracks().forEach(t => t.stop());
+  await audioCtx.close();
+
+  // 5. Compute noise bucket
+  const avgRms = rmsValues.reduce((a, b) => a + b, 0) / rmsValues.length;
+  const avgVariation = variationValues.reduce((a, b) => a + b, 0) / variationValues.length;
+
+  let bucket;
+  if (avgRms < 0.025 && avgVariation < 0.015) {
+    bucket = "very_quiet";
+  } else if (avgRms < 0.05 && avgVariation < 0.03) {
+    bucket = "quiet";
+  } else if (avgRms < 0.09) {
+    bucket = "moderate";
+  } else {
+    bucket = "loud";
+  }
+
+  // 6. Show result card
+  statusArea.innerHTML = `
+    <div class="result-card">
+      <div class="label">Detected Level</div>
+      <div class="bucket-name bucket-${bucket}">${formatBucket(bucket)}</div>
+      <div class="result-meta">
+        <div class="meta-item">RMS <span>${avgRms.toFixed(3)}</span></div>
+        <div class="meta-item">Var <span>${avgVariation.toFixed(3)}</span></div>
+      </div>
+      <div class="geo-badge"><span class="dot"></span> geo: ${geo}</div>
+    </div>
+  `;
+
+  // 7. Send to API
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ts: Math.floor(Date.now() / 1000),
+        geo: geo,
+        noise_bucket: bucket
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`Server responded with ${res.status}`);
+    }
+
+    statusArea.innerHTML += `
+      <div class="sent-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Sent anonymously
+      </div>
+    `;
+  } catch (fetchErr) {
+    statusArea.innerHTML += `
+      <div class="status-msg error" style="margin-top: 0.6rem;">
+        ⚠️ Could not send data — ${fetchErr.message}
+      </div>
+    `;
+  }
+
+  setMeasuring(false);
+}
+</script>
+</body>
+</html>
