@@ -8,6 +8,22 @@ VOID-MAP captures ambient noise levels from users' microphones, classifies them 
 
 ---
 
+## Demo
+
+<p align="center">
+  <img src="docs/demo/initial-state.png" alt="Void Map — Initial State" width="420">
+  <br>
+  <em>Clean, minimal interface — one button to measure silence</em>
+</p>
+
+<p align="center">
+  <img src="docs/demo/measurement-result.png" alt="Void Map — Measurement Result" width="420">
+  <br>
+  <em>Result card showing noise level, RMS/Var values, geohash, and anonymous send confirmation</em>
+</p>
+
+---
+
 ## Architecture
 
 ```
