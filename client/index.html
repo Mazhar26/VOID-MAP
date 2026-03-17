@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="VOID-MAP — Privacy-first mapping of quiet places using ephemeral data.">
   <title>Void Map — Measure Quiet</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌑</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -352,21 +353,21 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" role="main">
     <div class="logo">
-      <div class="logo-icon">🌑</div>
+      <div class="logo-icon" aria-hidden="true">🌑</div>
       <h1>Void Map</h1>
     </div>
     <p class="subtitle">Measure and map the quiet around you. No audio recorded — only silence levels, forgotten in 30 minutes.</p>
 
-    <button class="measure-btn" id="measureBtn" onclick="measure()">
+    <button class="measure-btn" id="measureBtn" onclick="measure()" aria-label="Measure ambient silence level">
       <span class="btn-text">Measure Silence</span>
     </button>
 
-    <div class="status-area" id="statusArea"></div>
+    <div class="status-area" id="statusArea" role="status" aria-live="polite"></div>
 
-    <div class="footer">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="footer" aria-label="Privacy information">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
       </svg>
@@ -380,8 +381,24 @@ const CONFIG = {
   API_URL: "https://qlfi30snpa.execute-api.us-east-1.amazonaws.com/signal",
   MEASUREMENT_DURATION_MS: 1200,
   SAMPLE_INTERVAL_MS: 60,
-  GEOHASH_PRECISION: 4
+  GEOHASH_PRECISION: 5,
+  API_RETRY_ATTEMPTS: 2,
+  API_RETRY_DELAY_MS: 800,
+
+  // Noise classification thresholds
+  VERY_QUIET_RMS_MAX: 0.025,
+  VERY_QUIET_VAR_MAX: 0.015,
+  QUIET_RMS_MAX: 0.05,
+  QUIET_VAR_MAX: 0.03,
+  MODERATE_RMS_MAX: 0.09
 };
+
+// ─── Utilities ───────────────────────────────────────────────
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // ─── Geohash Encoder ────────────────────────────────────────
 const BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
@@ -448,9 +465,33 @@ async function getUserGeohash() {
             reject(new Error("Could not determine your location."));
         }
       },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   });
+}
+
+// ─── API Helper with Retry ───────────────────────────────────
+async function postSignal(payload) {
+  let lastError;
+  for (let attempt = 0; attempt <= CONFIG.API_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(CONFIG.API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        throw new Error(`Server responded with ${res.status}`);
+      }
+      return { success: true };
+    } catch (err) {
+      lastError = err;
+      if (attempt < CONFIG.API_RETRY_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, CONFIG.API_RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+  return { success: false, error: lastError };
 }
 
 // ─── UI Helpers ──────────────────────────────────────────────
@@ -469,7 +510,7 @@ function setMeasuring(show) {
 
 function showVisualizer() {
   const bars = Array.from({ length: 20 }, () => '<div class="bar" style="height:4px"></div>').join('');
-  return `<div class="visualizer" id="visualizer">${bars}</div>`;
+  return `<div class="visualizer" id="visualizer" aria-hidden="true">${bars}</div>`;
 }
 
 function updateVisualizerBars(rms) {
@@ -496,7 +537,7 @@ async function measure() {
   try {
     geo = await getUserGeohash();
   } catch (locErr) {
-    setStatus(`⚠️ ${locErr.message}`, "error");
+    setStatus(`⚠️ ${escapeHtml(locErr.message)}`, "error");
     setMeasuring(false);
     return;
   }
@@ -520,12 +561,17 @@ async function measure() {
     const msg = micErr.name === "NotAllowedError"
       ? "Microphone access denied. Please allow mic permissions and try again."
       : "Could not access microphone. Please check your device settings.";
-    setStatus(`🎤 ${msg}`, "error");
+    setStatus(`🎤 ${escapeHtml(msg)}`, "error");
     setMeasuring(false);
     return;
   }
 
   const audioCtx = new AudioContext();
+  // Resume AudioContext in case browser suspended it
+  if (audioCtx.state === "suspended") {
+    await audioCtx.resume();
+  }
+
   const source = audioCtx.createMediaStreamSource(stream);
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 2048;
@@ -576,62 +622,55 @@ async function measure() {
   stream.getTracks().forEach(t => t.stop());
   await audioCtx.close();
 
-  // 5. Compute noise bucket
+  // 5. Compute noise bucket using named thresholds
   const avgRms = rmsValues.reduce((a, b) => a + b, 0) / rmsValues.length;
   const avgVariation = variationValues.reduce((a, b) => a + b, 0) / variationValues.length;
 
   let bucket;
-  if (avgRms < 0.025 && avgVariation < 0.015) {
+  if (avgRms < CONFIG.VERY_QUIET_RMS_MAX && avgVariation < CONFIG.VERY_QUIET_VAR_MAX) {
     bucket = "very_quiet";
-  } else if (avgRms < 0.05 && avgVariation < 0.03) {
+  } else if (avgRms < CONFIG.QUIET_RMS_MAX && avgVariation < CONFIG.QUIET_VAR_MAX) {
     bucket = "quiet";
-  } else if (avgRms < 0.09) {
+  } else if (avgRms < CONFIG.MODERATE_RMS_MAX) {
     bucket = "moderate";
   } else {
     bucket = "loud";
   }
 
-  // 6. Show result card
+  // 6. Show result card (all dynamic values are escaped)
+  const safeGeo = escapeHtml(geo);
   statusArea.innerHTML = `
     <div class="result-card">
       <div class="label">Detected Level</div>
-      <div class="bucket-name bucket-${bucket}">${formatBucket(bucket)}</div>
+      <div class="bucket-name bucket-${escapeHtml(bucket)}">${escapeHtml(formatBucket(bucket))}</div>
       <div class="result-meta">
-        <div class="meta-item">RMS <span>${avgRms.toFixed(3)}</span></div>
-        <div class="meta-item">Var <span>${avgVariation.toFixed(3)}</span></div>
+        <div class="meta-item">RMS <span>${escapeHtml(avgRms.toFixed(3))}</span></div>
+        <div class="meta-item">Var <span>${escapeHtml(avgVariation.toFixed(3))}</span></div>
       </div>
-      <div class="geo-badge"><span class="dot"></span> geo: ${geo}</div>
+      <div class="geo-badge"><span class="dot"></span> geo: ${safeGeo}</div>
     </div>
   `;
 
-  // 7. Send to API
-  try {
-    const res = await fetch(CONFIG.API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ts: Math.floor(Date.now() / 1000),
-        geo: geo,
-        noise_bucket: bucket
-      })
-    });
+  // 7. Send to API with retry
+  const result = await postSignal({
+    ts: Math.floor(Date.now() / 1000),
+    geo: geo,
+    noise_bucket: bucket
+  });
 
-    if (!res.ok) {
-      throw new Error(`Server responded with ${res.status}`);
-    }
-
+  if (result.success) {
     statusArea.innerHTML += `
       <div class="sent-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
         Sent anonymously
       </div>
     `;
-  } catch (fetchErr) {
+  } else {
     statusArea.innerHTML += `
       <div class="status-msg error" style="margin-top: 0.6rem;">
-        ⚠️ Could not send data — ${fetchErr.message}
+        ⚠️ Could not send data — ${escapeHtml(result.error?.message || "Unknown error")}
       </div>
     `;
   }

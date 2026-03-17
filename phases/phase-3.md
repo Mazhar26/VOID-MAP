@@ -9,7 +9,9 @@
   - [x] Pagination with `LastEvaluatedKey` for complete results
   - [x] Weighted quiet score calculation
   - [x] Confidence levels with named thresholds
-  - [x] CORS headers on all responses
+  - [x] CORS + `Content-Type` headers on all responses
+  - [x] Error handling around DynamoDB queries (500 on failure)
+  - [x] Structured logging via `logging` module
   - [x] Graceful handling of empty result sets
 
 ## Future Enhancements
