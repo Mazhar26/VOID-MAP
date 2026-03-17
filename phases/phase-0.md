@@ -14,7 +14,7 @@
 
 - **Ephemeral storage:** DynamoDB TTL (30 minutes) ensures data is automatically forgotten
 - **No audio recording:** Only noise-level classification buckets are transmitted
-- **Coarse geolocation:** Geohash precision 4 (~40km² tiles) to prevent precise tracking
+- **Coarse geolocation:** Geohash precision 5 (~5km² tiles) to prevent precise tracking
 - **Serverless architecture:** API Gateway + Lambda + DynamoDB — no servers to manage
 - **Single-file client:** Minimal HTML/CSS/JS with no build step required
 
