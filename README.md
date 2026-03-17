@@ -125,6 +125,39 @@ See [routes.md](api/routes.md) for full request/response schemas.
 
 ---
 
+## Future Scope
+
+🗺️ **Interactive Quiet Map**
+- Real-time heatmap visualization of quiet scores across geohash tiles
+- Leaflet/Mapbox integration with color-coded overlays (green = quiet, red = loud)
+
+📊 **Richer Analytics**
+- Historical trend tracking per geohash (requires opt-in relaxed TTL for aggregate-only data)
+- Time-of-day patterns — discover when places are quietest
+- Neighboring geohash expansion for broader area queries
+
+🔔 **Smart Notifications**
+- "Your favorite park is quiet right now" — push alerts based on user-defined watch areas
+- Noise spike detection per tile
+
+📱 **Mobile-First Enhancements**
+- Progressive Web App (PWA) with offline support and install prompt
+- Background periodic measurements (with user consent)
+- Haptic feedback on measurement completion
+
+🔒 **Infrastructure Hardening**
+- API Gateway throttling and per-IP rate limiting
+- Infrastructure as Code (SAM / Terraform) for one-click deployment
+- CloudWatch dashboards for Lambda metrics and DynamoDB throughput
+- Automated integration tests with mocked DynamoDB
+
+🌍 **Community Features**
+- Public leaderboard of quietest neighborhoods (aggregated, non-identifying)
+- Crowd-sourced quiet spot recommendations
+- Embeddable widget for third-party sites
+
+---
+
 ## Contributing
 
 1. Fork the repository
