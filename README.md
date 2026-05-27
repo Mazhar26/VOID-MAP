@@ -191,8 +191,8 @@ See [routes.md](api/routes.md) for full request/response schemas.
 - Haptic feedback on measurement completion
 
 🔒 **Infrastructure Hardening**
-- ~~Infrastructure as Code (Terraform)~~ ✅ Done — see [`terraform/`](terraform/)
-- ~~API Gateway throttling~~ ✅ Done — 50 req/s sustained, 100 burst
+- Terraform IaC for one-click deployment (DynamoDB, Lambda, API Gateway, IAM) — see [`terraform/`](terraform/)
+- API Gateway throttling at 50 req/s sustained, 100 burst per route
 - CloudWatch dashboards for Lambda metrics and DynamoDB throughput
 - Automated integration tests with mocked DynamoDB
 - Per-IP rate limiting via API Gateway usage plans
