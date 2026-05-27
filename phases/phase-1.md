@@ -12,12 +12,13 @@
   - `POST /signal` → Write Lambda
   - `GET /quiet/{geo}` → Read Lambda
 - [x] IAM roles and policies for Lambda → DynamoDB access
-- [ ] API Gateway throttling configured for rate limiting (recommended: 100 req/s burst, 50 req/s sustained)
+- [x] API Gateway throttling configured for rate limiting (recommended: 100 req/s burst, 50 req/s sustained)
 
 ## Notes
 
 - CORS is handled at the Lambda level (response headers) rather than API Gateway level
 - DynamoDB is provisioned in on-demand capacity mode for cost efficiency at low traffic
 - No VPC required — Lambdas access DynamoDB via public endpoint
+- Throttling and rate limiting are configured at the API Gateway stage level via Terraform
 
-## Status: 🔄 In Progress (throttling pending)
+## Status: ✅ Complete

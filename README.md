@@ -86,7 +86,23 @@ python -m http.server 8000
 ```
 Then visit `http://localhost:8000`.
 
-### Deploying Lambdas
+### Deploying Infrastructure
+
+You can deploy the entire infrastructure automatically using **Terraform (Recommended)** or deploy the code manually.
+
+#### Option A: Deploying via Terraform (Recommended)
+
+1. Make sure you have [Terraform](https://www.terraform.io/) installed.
+2. Initialize and apply the configuration:
+   ```bash
+   cd terraform
+   terraform init
+   terraform apply
+   ```
+3. Update the `API_URL` in `client/index.html` with the `api_endpoint` output from Terraform.
+
+#### Option B: Deploying Manually
+
 Package each Lambda handler and deploy via the AWS Console or CLI:
 ```bash
 cd lambdas/write_signal
