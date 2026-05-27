@@ -4,7 +4,31 @@
 
 **Forgetting is enforced by infrastructure, not discipline.**
 
+![Deploy Status](https://img.shields.io/badge/AWS-Deployed-success?logo=amazon-aws) ![IaC](https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform) ![Lambda](https://img.shields.io/badge/Runtime-Python%203.9-blue?logo=python) ![License](https://img.shields.io/badge/License-MIT-green)
+
 VOID-MAP captures ambient noise levels from users' microphones, classifies them into silence buckets, stores them transiently in DynamoDB (30-minute TTL), and serves aggregated "quiet scores" per geographic tile. No audio is recorded — only noise level categories, which are automatically deleted after 30 minutes.
+
+---
+
+## 🌐 Live API
+
+**Base URL:** `https://nywrqf0pul.execute-api.us-east-1.amazonaws.com`
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/signal` | `POST` | Submit an anonymous noise reading |
+| `/quiet/{geo}` | `GET` | Get the quiet score for a geohash tile |
+
+**Quick test:**
+```bash
+# Submit a signal
+curl -X POST https://nywrqf0pul.execute-api.us-east-1.amazonaws.com/signal \
+  -H "Content-Type: application/json" \
+  -d "{\"geo\": \"tdr5\", \"noise_bucket\": \"quiet\", \"ts\": $(date +%s)}"
+
+# Get quiet score
+curl https://nywrqf0pul.execute-api.us-east-1.amazonaws.com/quiet/tdr5
+```
 
 ---
 
@@ -59,6 +83,11 @@ VOID-MAP/
 │   │   └── handler.py         # Validate & store silence signals
 │   └── read_aggregation/
 │       └── handler.py         # Aggregate & return quiet scores
+├── terraform/
+│   ├── main.tf                # DynamoDB, Lambda, API Gateway, IAM resources
+│   ├── variables.tf           # Configurable variables
+│   ├── outputs.tf             # API endpoint & resource ARN outputs
+│   └── providers.tf           # AWS & Archive provider config
 └── phases/
     ├── phase-0.md              # Design & documentation
     ├── phase-1.md              # Infrastructure setup
@@ -162,10 +191,11 @@ See [routes.md](api/routes.md) for full request/response schemas.
 - Haptic feedback on measurement completion
 
 🔒 **Infrastructure Hardening**
-- API Gateway throttling and per-IP rate limiting
-- Infrastructure as Code (SAM / Terraform) for one-click deployment
+- ~~Infrastructure as Code (Terraform)~~ ✅ Done — see [`terraform/`](terraform/)
+- ~~API Gateway throttling~~ ✅ Done — 50 req/s sustained, 100 burst
 - CloudWatch dashboards for Lambda metrics and DynamoDB throughput
 - Automated integration tests with mocked DynamoDB
+- Per-IP rate limiting via API Gateway usage plans
 
 🌍 **Community Features**
 - Public leaderboard of quietest neighborhoods (aggregated, non-identifying)
