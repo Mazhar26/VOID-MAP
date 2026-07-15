@@ -1,0 +1,18 @@
+{
+  "name": "voidmap-client",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "VOID-MAP Vite frontend",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "vite": "^5.3.4"
+  }
+}
