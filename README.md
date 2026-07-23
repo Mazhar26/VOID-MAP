@@ -1,220 +1,158 @@
 # VOID-MAP
 
-> Privacy-first serverless system for mapping quiet places using ephemeral cloud data.
+> Privacy-first, open-source mapping platform for finding and sharing quiet spots.
 
-**Forgetting is enforced by infrastructure, not discipline.**
+**Forgetting is enforced by clean database lifecycle logic, not manual discipline.**
 
-![Deploy Status](https://img.shields.io/badge/AWS-Deployed-success?logo=amazon-aws) ![IaC](https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform) ![Lambda](https://img.shields.io/badge/Runtime-Python%203.9-blue?logo=python) ![License](https://img.shields.io/badge/License-MIT-green)
-
-VOID-MAP captures ambient noise levels from users' microphones, classifies them into silence buckets, stores them transiently in DynamoDB (30-minute TTL), and serves aggregated "quiet scores" per geographic tile. No audio is recorded — only noise level categories, which are automatically deleted after 30 minutes.
+VOID-MAP records noise readings from users' microphones, maps silence levels transiently, and offers activity suggestions based on local decibels. Readings are stored anonymously in a PostgreSQL database and purged after 30 minutes.
 
 ---
 
-## 🌐 Live API
+## 🛠️ Technology Stack
 
-**Base URL:** `https://nywrqf0pul.execute-api.us-east-1.amazonaws.com`
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/signal` | `POST` | Submit an anonymous noise reading |
-| `/quiet/{geo}` | `GET` | Get the quiet score for a geohash tile |
-
-**Quick test:**
-```bash
-# Submit a signal
-curl -X POST https://nywrqf0pul.execute-api.us-east-1.amazonaws.com/signal \
-  -H "Content-Type: application/json" \
-  -d "{\"geo\": \"tdr5\", \"noise_bucket\": \"quiet\", \"ts\": $(date +%s)}"
-
-# Get quiet score
-curl https://nywrqf0pul.execute-api.us-east-1.amazonaws.com/quiet/tdr5
-```
+- **Server:** Node.js (Express.js), Helmet, express-rate-limit, pg, prom-client, Resend
+- **Database:** PostgreSQL (with indexed geohash tiles, 30-min cleanup)
+- **Client:** Vite, Vanilla JS, Leaflet.js, OpenStreetMap
+- **Monitoring:** Grafana / Prometheus scraping
 
 ---
 
-## Demo
-
-<p align="center">
-  <img src="docs/demo/initial-state.png" alt="Void Map — Initial State" width="420">
-  <br>
-  <em>Clean, minimal interface — one button to measure silence</em>
-</p>
-
-<p align="center">
-  <img src="docs/demo/measurement-result.png" alt="Void Map — Measurement Result" width="420">
-  <br>
-  <em>Result card showing noise level, RMS/Var values, geohash, and anonymous send confirmation</em>
-</p>
-
----
-
-## Architecture
-
-```
-Client (browser)
-  ↓ POST /signal
-API Gateway (HTTP API)
-  ↓
-Write Lambda → DynamoDB (TTL = 30 min)
-  ↑
-Read Lambda ← GET /quiet/{geo}
-  ↑
-API Gateway
-  ↑
-Client / Consumer
-```
-
-See [architecture.md](architecture/architecture.md) for details.
-
----
-
-## Project Structure
+## 🌐 Project Structure
 
 ```
 VOID-MAP/
-├── api/
-│   └── routes.md              # API route definitions & schemas
-├── architecture/
-│   └── architecture.md        # System design & component diagram
-├── client/
-│   └── index.html             # Browser client — mic capture + signal POST
-├── lambdas/
-│   ├── write_signal/
-│   │   └── handler.py         # Validate & store silence signals
-│   └── read_aggregation/
-│       └── handler.py         # Aggregate & return quiet scores
-├── terraform/
-│   ├── main.tf                # DynamoDB, Lambda, API Gateway, IAM resources
-│   ├── variables.tf           # Configurable variables
-│   ├── outputs.tf             # API endpoint & resource ARN outputs
-│   └── providers.tf           # AWS & Archive provider config
-└── phases/
-    ├── phase-0.md              # Design & documentation
-    ├── phase-1.md              # Infrastructure setup
-    ├── phase-2.md              # Write path implementation
-    └── phase-3.md              # Read path & aggregation
+├── server/                          # Express.js backend
+│   ├── src/
+│   │   ├── index.js                 # App entry point & Prometheus endpoints
+│   │   ├── config/
+│   │   │   ├── db.js                # PostgreSQL pool config
+│   │   │   └── env.js               # Envs validation schema
+│   │   ├── middleware/
+│   │   │   ├── auth.js              # JWT verification
+│   │   │   ├── adminAuth.js         # Admin role gate
+│   │   │   └── rateLimiter.js       # Express rate limiting
+│   │   ├── routes/
+│   │   │   ├── authRoutes.js        # OTP Signup/Login/Verify
+│   │   │   ├── signalRoutes.js      # Post signals & get quiet scores
+│   │   │   ├── locationRoutes.js    # Saved locations CRUD
+│   │   │   ├── recommendRoutes.js   # Activity recommendations
+│   │   │   └── adminRoutes.js       # Admin stats & User management
+│   │   ├── services/
+│   │   │   ├── otpService.js        # Bcrypt hashing & Resend integration
+│   │   │   ├── tokenService.js      # JWT helper
+│   │   │   └── cleanupService.js    # 30-min TTL signal purge background runner
+│   │   └── db/
+│   │       ├── migrate.js           # Schema migration runner
+│   │       └── schema.sql           # PostgreSQL table schemas
+│   ├── package.json
+│   └── .env.example
+│
+├── client/                          # Vite + Vanilla JS frontend
+│   ├── index.html                   # Entry SPA layout
+│   ├── vite.config.js               # Proxy setup to Express (cors-free)
+│   ├── src/
+│   │   ├── main.js                  # Routing setup & Entry
+│   │   ├── style.css                # Global variables & theme variables
+│   │   ├── api.js                   # Fetch wrapper with auto-auth headers
+│   │   ├── router.js                # Client hash router with guards & afterMount hook
+│   │   ├── pages/
+│   │   │   ├── home.js              # Sound capture dashboard
+│   │   │   ├── map.js               # Interactive map layout
+│   │   │   ├── login.js             # Passwordless Gmail OTP form
+│   │   │   └── admin.js             # Systems statistics & metrics dashboard
+│   │   ├── components/
+│   │   │   ├── locationToggle.js    # Address / Coordinates switcher
+│   │   │   ├── pinModal.js          # Save/Share location dialog
+│   │   │   └── recommendList.js     # Suggestion tiles
+│   │   ├── lib/
+│   │   │   ├── microphone.js        # Web Audio API analyzer
+│   │   │   ├── classify.js          # Threshold classification
+│   │   │   ├── geohash.js           # Geohash encoder
+│   │   │   └── geocode.js           # Nominatim forward/reverse geocoding
+│   │   └── map/
+│   │       ├── leafletMap.js        # Leaflet init & markers paths fix
+│   │       ├── markers.js           # Live spots layer
+│   │       └── userPins.js          # Pin layer & interactive deletion popups
+│
+├── archive/                         # Archived AWS implementation
+│   ├── lambdas/                     # Python Lambdas
+│   └── terraform/                   # Terraform config
 ```
 
 ---
 
-## Local Development
+## 🚀 Local Development
 
-### Prerequisites
-- Python 3.9+
-- AWS CLI configured with appropriate credentials
-- A DynamoDB table named `voidmap_ephemeral_signals` with:
-  - Partition key: `geo` (String)
-  - Sort key: `ts` (String) — composite `"timestamp#uuid"`
-  - TTL attribute: `expires_at`
-
-### Running the Client
-Open `client/index.html` in any modern browser, or serve it locally:
-```bash
-cd client
-python -m http.server 8000
+### 1. Database Setup
+Ensure PostgreSQL is running locally. Connect and create a database named `voidmap`:
+```sql
+CREATE DATABASE voidmap;
 ```
-Then visit `http://localhost:8000`.
 
-### Deploying Infrastructure
-
-You can deploy the entire infrastructure automatically using **Terraform (Recommended)** or deploy the code manually.
-
-#### Option A: Deploying via Terraform (Recommended)
-
-1. Make sure you have [Terraform](https://www.terraform.io/) installed.
-2. Initialize and apply the configuration:
+### 2. Backend Setup
+1. Navigate to `/server`:
    ```bash
-   cd terraform
-   terraform init
-   terraform apply
+   cd server
    ```
-3. Update the `API_URL` in `client/index.html` with the `api_endpoint` output from Terraform.
+2. Install packages:
+   ```bash
+   npm install
+   ```
+3. Create a `.env` file (copied from `.env.example`) and fill in details:
+   ```env
+   PORT=3000
+   DATABASE_URL=postgresql://postgres:<password>@localhost:5432/voidmap
+   JWT_SECRET=<your-jwt-secret>
+   RESEND_API_KEY=<your-resend-api-key>
+   FROM_EMAIL=onboarding@resend.dev
+   ADMIN_EMAIL=<your-gmail-address>
+   ```
+4. Run migrations:
+   ```bash
+   npm run migrate
+   ```
+5. Start backend in development mode:
+   ```bash
+   npm run dev
+   ```
 
-#### Option B: Deploying Manually
-
-Package each Lambda handler and deploy via the AWS Console or CLI:
-```bash
-cd lambdas/write_signal
-zip write_signal.zip handler.py
-aws lambda update-function-code --function-name voidmap-write-signal --zip-file fileb://write_signal.zip
-
-cd ../read_aggregation
-zip read_aggregation.zip handler.py
-aws lambda update-function-code --function-name voidmap-read-aggregation --zip-file fileb://read_aggregation.zip
-```
-
----
-
-## API Usage
-
-### POST `/signal` — Submit a noise reading
-```json
-{
-  "ts": 1710000000,
-  "geo": "tdr5",
-  "noise_bucket": "quiet"
-}
-```
-
-### GET `/quiet/{geo}` — Get the quiet score
-```json
-{
-  "geo": "tdr5",
-  "quiet_score": 0.85,
-  "confidence": "medium",
-  "window_minutes": 30
-}
-```
-
-See [routes.md](api/routes.md) for full request/response schemas.
+### 3. Frontend Setup
+1. Navigate to `/client`:
+   ```bash
+   cd ../client
+   ```
+2. Install packages:
+   ```bash
+   npm install
+   ```
+3. Start the Vite server:
+   ```bash
+   npm run dev
+   ```
+4. Open the link displayed (`http://localhost:5173/`).
 
 ---
 
-## Future Scope
+## 📡 API Reference
 
-🗺️ **Interactive Quiet Map**
-- Real-time heatmap visualization of quiet scores across geohash tiles
-- Leaflet/Mapbox integration with color-coded overlays (green = quiet, red = loud)
+### Auth Routes
+- `POST /api/auth/signup` — Submit Gmail to register, receive verification OTP.
+- `POST /api/auth/login` — Request OTP for existing Gmail account.
+- `POST /api/auth/verify-otp` — Verify OTP and receive JWT access token.
+- `POST /api/auth/logout` — Stateless token removal reminder.
 
-📊 **Richer Analytics**
-- Historical trend tracking per geohash (requires opt-in relaxed TTL for aggregate-only data)
-- Time-of-day patterns — discover when places are quietest
-- Neighboring geohash expansion for broader area queries
+### Ephemeral Signals
+- `POST /api/signal` — Submit anonymous noise reading: `{ ts, geo, noise_bucket, latitude, longitude, rms_value }`.
+- `GET /api/quiet/:geohash` — Returns average quiet score over the last 30 minutes.
 
-🔔 **Smart Notifications**
-- "Your favorite park is quiet right now" — push alerts based on user-defined watch areas
-- Noise spike detection per tile
+### Location Pinning & Sharing
+- `POST /api/locations` (Auth) — Pin location: `{ latitude, longitude, address, noise_level, is_public, note }`.
+- `GET /api/locations/mine` (Auth) — Fetch current user's pins.
+- `GET /api/locations/public` (Auth) — Get public spots shared by the community.
+- `DELETE /api/locations/:id` (Auth) — Delete a user's pin.
 
-📱 **Mobile-First Enhancements**
-- Progressive Web App (PWA) with offline support and install prompt
-- Background periodic measurements (with user consent)
-- Haptic feedback on measurement completion
-
-🔒 **Infrastructure Hardening**
-- Terraform IaC for one-click deployment (DynamoDB, Lambda, API Gateway, IAM) — see [`terraform/`](terraform/)
-- API Gateway throttling at 50 req/s sustained, 100 burst per route
-- CloudWatch dashboards for Lambda metrics and DynamoDB throughput
-- Automated integration tests with mocked DynamoDB
-- Per-IP rate limiting via API Gateway usage plans
-
-🌍 **Community Features**
-- Public leaderboard of quietest neighborhoods (aggregated, non-identifying)
-- Crowd-sourced quiet spot recommendations
-- Embeddable widget for third-party sites
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes
-4. Push and open a Pull Request
-
-Please follow the project's privacy-first philosophy — no user-identifiable data should be logged, stored, or transmitted.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+### Recommendations & Administration
+- `GET /api/recommendations/:noiseLevel` — Fetch rule-based activities.
+- `GET /api/admin/stats` (Admin) — Fetch dashboard metrics.
+- `GET /api/admin/users` (Admin) — View user catalog.
+- `GET /metrics` — Prometheus metrics scraper target.
