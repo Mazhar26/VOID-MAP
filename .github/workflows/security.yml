@@ -1,0 +1,36 @@
+name: Security & Build CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  audit-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit Server Dependencies
+        run: |
+          cd server
+          npm audit --audit-level=high || true
+
+      - name: Audit Client Dependencies
+        run: |
+          cd client
+          npm audit --audit-level=high || true
+
+      - name: Install Client Dependencies & Test Build
+        run: |
+          cd client
+          npm ci
+          npm run build
