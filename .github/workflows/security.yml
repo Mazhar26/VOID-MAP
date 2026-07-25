@@ -32,5 +32,5 @@ jobs:
       - name: Install Client Dependencies & Test Build
         run: |
           cd client
-          npm ci
+          npm install
           npm run build
