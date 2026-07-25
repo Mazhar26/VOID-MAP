@@ -101,9 +101,11 @@ router.get('/public', async (req, res, next) => {
       const r = parseFloat(radius); // in degrees approx (1 degree = ~111km)
 
       if (!isNaN(latitude) && !isNaN(longitude) && !isNaN(r)) {
+        const centerHash = encodeGeohash(latitude, longitude, 3);
         sql += ` AND latitude BETWEEN $1 - $3 AND $1 + $3
-                 AND longitude BETWEEN $2 - $3 AND $2 + $3`;
-        params.push(latitude, longitude, r);
+                 AND longitude BETWEEN $2 - $3 AND $2 + $3
+                 AND geohash LIKE $4`;
+        params.push(latitude, longitude, r, `${centerHash}%`);
       }
     }
 

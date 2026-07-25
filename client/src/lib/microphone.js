@@ -58,53 +58,57 @@ export async function captureAudio(onSample, onProgress) {
     await audioCtx.resume();
   }
 
-  const source = audioCtx.createMediaStreamSource(stream);
-  const analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 2048;
-  source.connect(analyser);
+  try {
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
 
-  const data = new Uint8Array(analyser.fftSize);
-  const rmsValues = [];
-  const variationValues = [];
-  const startTime = performance.now();
+    const data = new Uint8Array(analyser.fftSize);
+    const rmsValues = [];
+    const variationValues = [];
+    const startTime = performance.now();
 
-  await new Promise((resolve) => {
-    const interval = setInterval(() => {
-      const elapsed = performance.now() - startTime;
+    await new Promise((resolve) => {
+      const interval = setInterval(() => {
+        const elapsed = performance.now() - startTime;
 
-      if (elapsed >= MEASUREMENT_DURATION_MS) {
-        clearInterval(interval);
-        resolve();
-        return;
-      }
+        if (elapsed >= MEASUREMENT_DURATION_MS) {
+          clearInterval(interval);
+          resolve();
+          return;
+        }
 
-      onProgress?.(elapsed / MEASUREMENT_DURATION_MS);
+        onProgress?.(elapsed / MEASUREMENT_DURATION_MS);
 
-      analyser.getByteTimeDomainData(data);
+        analyser.getByteTimeDomainData(data);
 
-      let sum = 0;
-      let diffs = 0;
-      for (let i = 1; i < data.length; i++) {
-        const v = (data[i] - 128) / 128;
-        const prev = (data[i - 1] - 128) / 128;
-        sum += v * v;
-        diffs += Math.abs(v - prev);
-      }
+        let sum = 0;
+        let diffs = 0;
+        for (let i = 1; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          const prev = (data[i - 1] - 128) / 128;
+          sum += v * v;
+          diffs += Math.abs(v - prev);
+        }
 
-      const rms = Math.sqrt(sum / data.length);
-      rmsValues.push(rms);
-      variationValues.push(diffs / data.length);
+        const rms = Math.sqrt(sum / data.length);
+        rmsValues.push(rms);
+        variationValues.push(diffs / data.length);
 
-      onSample?.(rms);
-    }, SAMPLE_INTERVAL_MS);
-  });
+        onSample?.(rms);
+      }, SAMPLE_INTERVAL_MS);
+    });
 
-  // Cleanup — stop mic tracks and close AudioContext
-  stream.getTracks().forEach(t => t.stop());
-  await audioCtx.close();
+    const avgRms = rmsValues.length > 0 ? rmsValues.reduce((a, b) => a + b, 0) / rmsValues.length : 0;
+    const avgVariation = variationValues.length > 0 ? variationValues.reduce((a, b) => a + b, 0) / variationValues.length : 0;
 
-  const avgRms = rmsValues.reduce((a, b) => a + b, 0) / rmsValues.length;
-  const avgVariation = variationValues.reduce((a, b) => a + b, 0) / variationValues.length;
-
-  return { avgRms, avgVariation };
+    return { avgRms, avgVariation };
+  } finally {
+    // Cleanup — stop mic tracks and close AudioContext
+    stream.getTracks().forEach(t => t.stop());
+    if (audioCtx.state !== 'closed') {
+      await audioCtx.close();
+    }
+  }
 }
