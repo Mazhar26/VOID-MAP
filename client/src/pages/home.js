@@ -31,18 +31,23 @@ function getNavLinks() {
 
 export async function homePage() {
   const el = document.createElement('div');
-  el.className = 'container';
+  el.className = 'container brand-hero';
   el.setAttribute('role', 'main');
 
   el.innerHTML = `
+    <!-- Telemetry Pill Badge -->
+    <div class="zap-badge">
+      <span class="pulse-dot"></span> ⚡ LIVE ACOUSTIC TELEMETRY
+    </div>
+
     <div class="logo">
       <div class="logo-icon" aria-hidden="true">🌙</div>
-      <h1>Void Map</h1>
+      <h1 class="hero-title">VOID-MAP</h1>
     </div>
-    <p class="subtitle">Exploring the soundscapes of the cosmos and beyond</p>
+    <p class="subtitle">Privacy-first mapping of quiet places using ephemeral data</p>
 
-    <button class="measure-btn" id="measureBtn" aria-label="Measure ambient silence level">
-      <span class="btn-text">Measure Silence</span>
+    <button class="measure-btn zap-btn" id="measureBtn" aria-label="Measure ambient silence level">
+      <span class="btn-text">MEASURE SILENCE</span>
     </button>
 
     <div class="status-area" id="statusArea" role="status" aria-live="polite"></div>
@@ -50,7 +55,7 @@ export async function homePage() {
     <div class="footer" aria-label="Navigation">
       ${getNavLinks()}
     </div>
-    <div class="copyright">© 2077 Celestial Acoustics Inc.</div>
+    <div class="copyright">© 2077 VOID-MAP Inc.</div>
   `;
 
   // ─── Logout handler ───────────────────────────────────────────────────────

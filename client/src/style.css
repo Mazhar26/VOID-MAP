@@ -43,8 +43,10 @@
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-primary) url('/black_hole.png') no-repeat center center fixed;
-  background-size: cover;
+  background: #07080e;
+  background-image: 
+    radial-gradient(circle at 50% 20%, rgba(255, 92, 0, 0.14), transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(181, 255, 54, 0.08), transparent 50%);
   color: var(--text-primary);
   min-height: 100vh;
   display: flex;
@@ -777,4 +779,8 @@ h1 {
 .btn-mini:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.audio-core-3d:hover canvas {
+  filter: drop-shadow(0 0 35px rgba(100, 255, 180, 0.6)) drop-shadow(0 0 60px rgba(255, 215, 100, 0.4));
 }

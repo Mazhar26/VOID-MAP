@@ -26,10 +26,11 @@
   gap: 0.5rem;
   flex-wrap: wrap;
   justify-content: center;
-  pointer-events: none; /* let clicks pass through to map except on controls */
+  pointer-events: none;
+  /* let clicks pass through to map except on controls */
 }
 
-.map-controls > * {
+.map-controls>* {
   pointer-events: all;
 }
 
@@ -146,4 +147,3 @@
 .leaflet-popup-close-button:hover {
   color: var(--text-primary) !important;
 }
-

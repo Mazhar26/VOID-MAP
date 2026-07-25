@@ -6,16 +6,16 @@ import L from 'leaflet';
 // Color palette — matches the CSS bucket colors in style.css
 const BUCKET_COLORS = {
   very_quiet: '#64ffb4',
-  quiet:      '#7ccfff',
-  moderate:   '#ffd764',
-  loud:       '#ff6b8a',
+  quiet: '#7ccfff',
+  moderate: '#ffd764',
+  loud: '#ff6b8a',
 };
 
 const BUCKET_LABELS = {
   very_quiet: '🟢 Very Quiet',
-  quiet:      '🔵 Quiet',
-  moderate:   '🟡 Moderate',
-  loud:       '🔴 Loud',
+  quiet: '🔵 Quiet',
+  moderate: '🟡 Moderate',
+  loud: '🔴 Loud',
 };
 
 /**

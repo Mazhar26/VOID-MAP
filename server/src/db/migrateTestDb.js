@@ -20,10 +20,10 @@ async function run() {
   // Parse base URL (without db name)
   const connectionUrl = new URL(testDbUrl);
   const dbName = connectionUrl.pathname.slice(1) || 'voidmap_test';
-  
+
   // Set pathname to default postgres db to verify existence
   connectionUrl.pathname = '/postgres';
-  
+
   console.log('[migrate-test] Connecting to server to check database presence...');
   const baseClient = new Client({ connectionString: connectionUrl.toString() });
   await baseClient.connect();
