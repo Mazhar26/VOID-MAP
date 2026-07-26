@@ -3,6 +3,8 @@
 // Captures audio for a set duration, returns RMS and variation arrays.
 // Caller is responsible for calling stop() when done.
 
+import { encodeGeohash } from './geohash.js';
+
 const MEASUREMENT_DURATION_MS = 5000;
 const SAMPLE_INTERVAL_MS = 60;
 
@@ -10,7 +12,7 @@ const SAMPLE_INTERVAL_MS = 60;
  * Get the user's GPS location + geohash.
  * @returns {Promise<{geo: string, lat: number, lon: number}>}
  */
-export async function getUserLocation(encodeGeohash, precision = 5) {
+export async function getUserLocation(precision = 5) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by your browser.'));

@@ -10,11 +10,20 @@ export async function loginPage() {
   const el = document.createElement('div');
   el.className = 'container';
   el.innerHTML = `
-    <div class="logo">
-      <div class="logo-icon" aria-hidden="true">🌙</div>
-      <h1>Void Map</h1>
+    <nav class="hs-nav" aria-label="Main Navigation">
+      <a href="#/" class="hs-brand">
+        <span style="font-size:1.4rem;">🌙</span> VOID-MAP
+      </a>
+      <div class="hs-nav-links">
+        <a href="#/" class="hs-nav-link">Home</a>
+        <a href="#/map" class="hs-nav-link">Map</a>
+      </div>
+    </nav>
+
+    <div class="hs-hero" style="padding-bottom:1rem;">
+      <h1 class="hs-hero-title" style="font-size:clamp(2rem, 5vw, 3rem);">Sign In to VOID-MAP</h1>
+      <p class="hs-hero-subtitle" style="font-size:1rem;margin-bottom:1.5rem;">Enter your Gmail address to unlock full map access & pin quiet spots</p>
     </div>
-    <p class="subtitle">Sign in or create an account</p>
 
     <div class="auth-form" id="authForm">
       <!-- Step 1: Email -->

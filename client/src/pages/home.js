@@ -1,6 +1,6 @@
-// ─── Home Page — Measure Silence ─────────────────────────────────────────────
-// Direct migration of the original index.html measurement flow.
-// Uses the extracted lib modules: microphone, classify, geohash, geocode.
+// ─── Home Page — Handshake AI Product Landing & Guest Free Trial Flow ─────────
+// Multi-page landing page featuring kinetic hero, bento box product grid,
+// 1-time free guest trial measurement, and gated conversion modals.
 
 import { encodeGeohash } from '../lib/geohash.js';
 import { classifyNoise } from '../lib/classify.js';
@@ -11,81 +11,109 @@ import { api } from '../api.js';
 import { createLocationToggle } from '../components/locationToggle.js';
 import { toggleSanctuarySoundscape } from '../lib/soundscape.js';
 import { unlockBadge, getEarnedBadges } from '../lib/badges.js';
+import { showGatedModal } from '../components/gatedModal.js';
 
 const GEOHASH_PRECISION = 5;
-
-
 
 function formatBucket(bucket) {
   return bucket.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function getNavLinks() {
+function getHeaderNav() {
   const user = (() => { try { return JSON.parse(localStorage.getItem('voidmap_user')); } catch { return null; } })();
   const token = localStorage.getItem('voidmap_token');
 
   return `
-    <a href="#/map">🗺️ Map</a>
-    ${token ? `<a href="#/login" id="logoutLink">Sign out</a>` : `<a href="#/login">Sign in</a>`}
-    ${user?.isAdmin ? `<a href="#/admin">Admin</a>` : ''}
+    <nav class="hs-nav" aria-label="Main Navigation">
+      <a href="#/" class="hs-brand">
+        <span style="font-size:1.4rem;">🌙</span> VOID-MAP
+      </a>
+      <div class="hs-nav-links">
+        <a href="#/map" class="hs-nav-link">🗺️ Map</a>
+        ${user?.isAdmin ? `<a href="#/admin" class="hs-nav-link">📊 Admin</a>` : ''}
+        ${token 
+          ? `<a href="#/login" id="logoutNavBtn" class="hs-nav-link" style="color:var(--error);">Sign out</a>`
+          : `<a href="#/login" class="hs-nav-cta">SIGN IN</a>`}
+      </div>
+    </nav>
   `;
 }
 
 export async function homePage() {
   const el = document.createElement('div');
-  el.className = 'container brand-hero';
+  el.className = 'container';
+  el.style.maxWidth = '920px';
   el.setAttribute('role', 'main');
 
+  const token = localStorage.getItem('voidmap_token');
+
   el.innerHTML = `
-    <!-- Telemetry Pill Badge -->
-    <div class="zap-badge">
-      <span class="pulse-dot"></span> ⚡ LIVE ACOUSTIC TELEMETRY
+    ${getHeaderNav()}
+
+    <!-- Handshake AI Kinetic Hero -->
+    <div class="hs-hero">
+      <div class="hs-hero-badge">
+        <span class="pulse-dot"></span> ⚡ ACOUSTIC SANCTUARY RADAR
+      </div>
+      <h1 class="hs-hero-title">Discover Tranquility in Digital Noise</h1>
+      <p class="hs-hero-subtitle">
+        Privacy-first spatial soundscape mapping. Measure ambient decibels, find quiet places nearby, and experience real-time sanctuary audio.
+      </p>
+
+      <div class="hs-hero-actions">
+        <button class="measure-btn zap-btn" id="measureBtn" aria-label="Measure ambient silence level">
+          <span class="btn-text">🔥 TRY 1-TIME FREE MEASUREMENT</span>
+        </button>
+        <button id="soundscapeBtn" class="btn-mini" style="padding:1.1rem 1.8rem;font-weight:700;border-radius:40px;background:rgba(255,92,0,0.12);border:1px solid rgba(255,92,0,0.4);color:#ff8c00;cursor:pointer;transition:all 0.3s ease;">
+          🎧 Listen to Sanctuary Audio
+        </button>
+      </div>
+
+      <!-- User Earned Badges Row -->
+      <div id="userBadgesRow" style="margin-top:1.5rem;display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;"></div>
     </div>
 
-    <div class="logo">
-      <div class="logo-icon" aria-hidden="true">🌙</div>
-      <h1 class="hero-title">VOID-MAP</h1>
+    <!-- Live Status & Trial Result Area -->
+    <div class="status-area" id="statusArea" role="status" aria-live="polite" style="max-width:540px;margin:0 auto 3rem;"></div>
+
+    <!-- Handshake AI Bento Box Feature Showcase -->
+    <div class="hs-bento-grid">
+      <div class="hs-bento-card">
+        <div class="hs-bento-icon">🛡️</div>
+        <h3 class="hs-bento-title">Ephemeral Privacy</h3>
+        <p class="hs-bento-desc">Sound readings automatically purge every 30 minutes. Zero persistent audio buffers or tracking.</p>
+      </div>
+      <div class="hs-bento-card">
+        <div class="hs-bento-icon">🎯</div>
+        <h3 class="hs-bento-title">Sub-Geohash Accuracy</h3>
+        <p class="hs-bento-desc">High-resolution spatial indexing maps quiet sanctuaries with sub-kilometer precision.</p>
+      </div>
+      <div class="hs-bento-card">
+        <div class="hs-bento-icon">🌐</div>
+        <h3 class="hs-bento-title">Crowdsourced Radar</h3>
+        <p class="hs-bento-desc">Explore public community spots or save private quiet zones visible only to you.</p>
+      </div>
     </div>
-    <p class="subtitle">Privacy-first mapping of quiet places using ephemeral data</p>
 
-    <button class="measure-btn zap-btn" id="measureBtn" aria-label="Measure ambient silence level">
-      <span class="btn-text">MEASURE SILENCE</span>
-    </button>
-
-    <!-- Interactive Web Audio Ambient Soundscape Generator -->
-    <div style="margin-top:1rem;text-align:center;">
-      <button id="soundscapeBtn" class="btn-mini" style="padding:0.5rem 1.2rem;font-weight:600;border-radius:20px;background:rgba(255,92,0,0.12);border:1px solid rgba(255,92,0,0.4);color:#ff8c00;cursor:pointer;transition:all 0.3s ease;">
-        🎧 Listen to Sanctuary Ambient Audio
-      </button>
-    </div>
-
-    <!-- User Earned Badges Row -->
-    <div id="userBadgesRow" style="margin-top:1.2rem;display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;"></div>
-
-    <div class="status-area" id="statusArea" role="status" aria-live="polite"></div>
-
-    <div class="footer" aria-label="Navigation">
-      ${getNavLinks()}
-    </div>
-    <div class="copyright">© 2077 VOID-MAP Inc.</div>
+    <div class="copyright" style="margin-top:3rem;">© 2077 VOID-MAP Inc. • Handshake UI Architecture</div>
   `;
 
-  // ─── Logout handler ───────────────────────────────────────────────────────
-  el.querySelector('#logoutLink')?.addEventListener('click', (e) => {
+  // Logout handler
+  el.querySelector('#logoutNavBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
     localStorage.removeItem('voidmap_token');
     localStorage.removeItem('voidmap_user');
     window.location.hash = '#/login';
   });
 
-  // ─── Soundscape Audio & Badges Setup ─────────────────────────────────────
+  // Soundscape audio player
   let isPlayingSoundscape = false;
   const soundscapeBtn = el.querySelector('#soundscapeBtn');
   soundscapeBtn?.addEventListener('click', () => {
     isPlayingSoundscape = toggleSanctuarySoundscape(!isPlayingSoundscape);
     soundscapeBtn.textContent = isPlayingSoundscape 
       ? '⏸️ Pause Sanctuary Audio' 
-      : '🎧 Listen to Sanctuary Ambient Audio';
+      : '🎧 Listen to Sanctuary Audio';
     soundscapeBtn.style.background = isPlayingSoundscape ? 'rgba(181,255,54,0.18)' : 'rgba(255,92,0,0.12)';
     soundscapeBtn.style.color = isPlayingSoundscape ? '#b5ff36' : '#ff8c00';
   });
@@ -95,18 +123,18 @@ export async function homePage() {
     if (!badgesRow) return;
     const earned = getEarnedBadges();
     if (earned.length === 0) {
-      badgesRow.innerHTML = `<span style="font-size:0.75rem;color:var(--text-muted);">Measure silence to unlock explorer badges</span>`;
+      badgesRow.innerHTML = `<span style="font-size:0.78rem;color:var(--text-muted);">Measure silence to unlock explorer badges</span>`;
       return;
     }
     badgesRow.innerHTML = earned.map(b => `
-      <span title="${escapeHtml(b.desc)}" style="padding:0.25rem 0.75rem;border-radius:20px;font-size:0.75rem;font-weight:600;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);display:inline-flex;align-items:center;gap:0.3rem;">
+      <span title="${escapeHtml(b.desc)}" style="padding:0.3rem 0.85rem;border-radius:20px;font-size:0.78rem;font-weight:600;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);display:inline-flex;align-items:center;gap:0.35rem;">
         ${b.icon} ${escapeHtml(b.title)}
       </span>
     `).join('');
   }
   renderBadges();
 
-  // ─── Measure button ───────────────────────────────────────────────────────
+  // Measure button & Guest Trial flow
   const measureBtn = el.querySelector('#measureBtn');
   const statusArea = el.querySelector('#statusArea');
 
@@ -116,7 +144,7 @@ export async function homePage() {
 
   function setMeasuring(active) {
     measureBtn.disabled = active;
-    measureBtn.querySelector('.btn-text').textContent = active ? 'Listening…' : 'Measure Silence';
+    measureBtn.querySelector('.btn-text').textContent = active ? 'Listening…' : '🔥 TRY 1-TIME FREE MEASUREMENT';
   }
 
   function buildVisualizer() {
@@ -138,33 +166,39 @@ export async function homePage() {
     setMeasuring(true);
     setStatus('📍 Locating you…', 'measuring');
 
-    // 1. Get location
-    let geo, lat, lon;
+    let lat, lon;
     try {
-      const loc = await getUserLocation(encodeGeohash, GEOHASH_PRECISION);
-      geo = loc.geo; lat = loc.lat; lon = loc.lon;
+      const loc = await getUserLocation();
+      lat = loc.lat;
+      lon = loc.lon;
     } catch (locErr) {
-      setStatus(`⚠️ ${escapeHtml(locErr.message)}`, 'error');
+      setStatus(`📍 ${escapeHtml(locErr.message)}`, 'error');
       setMeasuring(false);
       return;
     }
 
-    // 2. Reverse geocode (non-blocking)
+    const geo = encodeGeohash(lat, lon, GEOHASH_PRECISION);
     const addressPromise = reverseGeocode(lat, lon);
 
-    // 3. Show visualizer
-    setStatus(`Measuring ambient sound…${buildVisualizer()}`, 'measuring');
+    statusArea.innerHTML = `
+      <div class="status-msg measuring">
+        🎤 Listening… Measuring ambient sound
+        ${buildVisualizer()}
+      </div>
+    `;
 
-    // 4. Capture audio
+    const progressBar = el.querySelector('#progressBar');
     let avgRms, avgVariation;
+
     try {
-      const result = await captureAudio(
-        (rms) => updateVisualizer(rms),
-        (progress) => {
-          const bar = el.querySelector('#progressBar');
-          if (bar) bar.style.width = `${progress * 100}%`;
-        }
-      );
+      const result = await captureAudio({
+        durationMs: 5000,
+        intervalMs: 100,
+        onProgress: ({ elapsedMs, totalMs, rms }) => {
+          if (progressBar) progressBar.style.width = `${(elapsedMs / totalMs) * 100}%`;
+          updateVisualizer(rms);
+        },
+      });
       avgRms = result.avgRms;
       avgVariation = result.avgVariation;
     } catch (micErr) {
@@ -176,7 +210,7 @@ export async function homePage() {
       return;
     }
 
-    // 5. Classify & Award Badges
+    // Classify & unlock badges
     const bucket = classifyNoise(avgRms, avgVariation);
     const address = await addressPromise;
 
@@ -186,57 +220,49 @@ export async function homePage() {
     if (hr >= 22 || hr <= 5) unlockBadge('night_owl');
     renderBadges();
 
-    // 6. Show result card
+    // Result card
     const resultCard = document.createElement('div');
     resultCard.className = 'result-card';
     resultCard.innerHTML = `
       <div class="bucket-name bucket-${escapeHtml(bucket)}">${escapeHtml(formatBucket(bucket))}</div>
     `;
 
-    // Append location toggle
     const toggle = createLocationToggle({ address, lat, lon });
     resultCard.appendChild(toggle);
 
-    // Auth pin helper
-    const token = localStorage.getItem('voidmap_token');
-    if (token) {
-      const pinBtn = document.createElement('button');
-      pinBtn.className = 'btn-primary';
-      pinBtn.style.marginTop = '1rem';
-      pinBtn.style.width = '100%';
-      pinBtn.textContent = '📌 Pin Location';
-      pinBtn.addEventListener('click', () => {
-        import('../components/pinModal.js').then(({ showPinModal }) => {
-          showPinModal({ lat, lon, address, noiseLevel: bucket }, () => {
-            pinBtn.disabled = true;
-            pinBtn.textContent = '✅ Pinned!';
-            pinBtn.style.background = 'rgba(100, 255, 180, 0.2)';
-            pinBtn.style.color = '#64ffb4';
-            pinBtn.style.border = '1px solid #64ffb4';
-          });
+    // Gated Pin Button for guests / authenticated users
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'btn-primary';
+    pinBtn.style.marginTop = '1rem';
+    pinBtn.style.width = '100%';
+    pinBtn.textContent = token ? '📌 Pin Location' : '🔒 Sign in to Pin Location';
+    pinBtn.addEventListener('click', () => {
+      if (!token) {
+        showGatedModal('Unlock Location Pinning', 'Sign in with your Gmail address to save custom quiet spots on your personal map.');
+        return;
+      }
+      import('../components/pinModal.js').then(({ showPinModal }) => {
+        showPinModal({ lat, lon, address, noiseLevel: bucket }, () => {
+          pinBtn.disabled = true;
+          pinBtn.textContent = '✅ Pinned!';
+          pinBtn.style.background = 'rgba(100, 255, 180, 0.2)';
+          pinBtn.style.color = '#64ffb4';
+          pinBtn.style.border = '1px solid #64ffb4';
         });
       });
-      resultCard.appendChild(pinBtn);
-    } else {
-      const loginTip = document.createElement('div');
-      loginTip.style.fontSize = '0.8rem';
-      loginTip.style.color = 'var(--text-muted)';
-      loginTip.style.marginTop = '1rem';
-      loginTip.style.textAlign = 'center';
-      loginTip.innerHTML = `<a href="#/login" style="color:var(--accent);text-decoration:underline;">Sign in</a> to pin this location on your map`;
-      resultCard.appendChild(loginTip);
-    }
+    });
+    resultCard.appendChild(pinBtn);
 
     statusArea.innerHTML = '';
     statusArea.appendChild(resultCard);
 
-    // 7. Load recommendations list
+    // Activity recommendations
     import('../components/recommendList.js').then(async ({ createRecommendList }) => {
       const recList = await createRecommendList(bucket);
       statusArea.appendChild(recList);
     });
 
-    // 8. Send to API
+    // Send anonymous signal
     try {
       await api.postSignal({
         ts: Math.floor(Date.now() / 1000),

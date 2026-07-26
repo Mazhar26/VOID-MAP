@@ -28,6 +28,12 @@ export async function mapPage() {
       <button class="layer-btn active" id="btnPublic" data-layer="public">⭐ Community</button>
     </div>
 
+    <!-- Unauthenticated Guest Floating Banner -->
+    <div id="guestMapBanner" style="display:none;position:absolute;top:5rem;left:50%;transform:translateX(-50%);z-index:900;background:rgba(14,18,36,0.85);border:1px solid rgba(255,92,0,0.4);border-radius:30px;padding:0.6rem 1.4rem;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,0.5);display:flex;align-items:center;gap:0.8rem;">
+      <span style="font-size:0.85rem;color:var(--text-secondary);">🔒 Guest Mode — Sign in to save custom quiet spots</span>
+      <button id="guestSignInBtn" class="hs-nav-cta" style="padding:0.35rem 1rem;font-size:0.78rem;">SIGN IN</button>
+    </div>
+
     <!-- Map container -->
     <div id="map"></div>
 
@@ -57,6 +63,16 @@ export async function mapPage() {
       const layers = { live: null, mine: null, public: null };
       const visible = { live: true, mine: true, public: true };
       const token = localStorage.getItem('voidmap_token');
+
+      const guestBanner = el.querySelector('#guestMapBanner');
+      if (!token && guestBanner) {
+        guestBanner.style.display = 'flex';
+        el.querySelector('#guestSignInBtn')?.addEventListener('click', () => {
+          import('../components/gatedModal.js').then(({ showGatedModal }) => {
+            showGatedModal('Unlock Full Map & Save Spots', 'Sign in with your Gmail address to explore public community spots and pin your own quiet sanctuaries.');
+          });
+        });
+      }
 
       // ─── Load live signals ──────────────────────────────────────────────
       async function loadLiveSignals() {
