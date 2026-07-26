@@ -9,6 +9,8 @@ import { getUserLocation, captureAudio } from '../lib/microphone.js';
 import { escapeHtml } from '../lib/escape.js';
 import { api } from '../api.js';
 import { createLocationToggle } from '../components/locationToggle.js';
+import { toggleSanctuarySoundscape } from '../lib/soundscape.js';
+import { unlockBadge, getEarnedBadges } from '../lib/badges.js';
 
 const GEOHASH_PRECISION = 5;
 
@@ -50,6 +52,16 @@ export async function homePage() {
       <span class="btn-text">MEASURE SILENCE</span>
     </button>
 
+    <!-- Interactive Web Audio Ambient Soundscape Generator -->
+    <div style="margin-top:1rem;text-align:center;">
+      <button id="soundscapeBtn" class="btn-mini" style="padding:0.5rem 1.2rem;font-weight:600;border-radius:20px;background:rgba(255,92,0,0.12);border:1px solid rgba(255,92,0,0.4);color:#ff8c00;cursor:pointer;transition:all 0.3s ease;">
+        🎧 Listen to Sanctuary Ambient Audio
+      </button>
+    </div>
+
+    <!-- User Earned Badges Row -->
+    <div id="userBadgesRow" style="margin-top:1.2rem;display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;"></div>
+
     <div class="status-area" id="statusArea" role="status" aria-live="polite"></div>
 
     <div class="footer" aria-label="Navigation">
@@ -65,6 +77,34 @@ export async function homePage() {
     localStorage.removeItem('voidmap_user');
     window.location.hash = '#/login';
   });
+
+  // ─── Soundscape Audio & Badges Setup ─────────────────────────────────────
+  let isPlayingSoundscape = false;
+  const soundscapeBtn = el.querySelector('#soundscapeBtn');
+  soundscapeBtn?.addEventListener('click', () => {
+    isPlayingSoundscape = toggleSanctuarySoundscape(!isPlayingSoundscape);
+    soundscapeBtn.textContent = isPlayingSoundscape 
+      ? '⏸️ Pause Sanctuary Audio' 
+      : '🎧 Listen to Sanctuary Ambient Audio';
+    soundscapeBtn.style.background = isPlayingSoundscape ? 'rgba(181,255,54,0.18)' : 'rgba(255,92,0,0.12)';
+    soundscapeBtn.style.color = isPlayingSoundscape ? '#b5ff36' : '#ff8c00';
+  });
+
+  function renderBadges() {
+    const badgesRow = el.querySelector('#userBadgesRow');
+    if (!badgesRow) return;
+    const earned = getEarnedBadges();
+    if (earned.length === 0) {
+      badgesRow.innerHTML = `<span style="font-size:0.75rem;color:var(--text-muted);">Measure silence to unlock explorer badges</span>`;
+      return;
+    }
+    badgesRow.innerHTML = earned.map(b => `
+      <span title="${escapeHtml(b.desc)}" style="padding:0.25rem 0.75rem;border-radius:20px;font-size:0.75rem;font-weight:600;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary);display:inline-flex;align-items:center;gap:0.3rem;">
+        ${b.icon} ${escapeHtml(b.title)}
+      </span>
+    `).join('');
+  }
+  renderBadges();
 
   // ─── Measure button ───────────────────────────────────────────────────────
   const measureBtn = el.querySelector('#measureBtn');
@@ -136,9 +176,15 @@ export async function homePage() {
       return;
     }
 
-    // 5. Classify
+    // 5. Classify & Award Badges
     const bucket = classifyNoise(avgRms, avgVariation);
     const address = await addressPromise;
+
+    unlockBadge('first_measure');
+    if (bucket === 'very_quiet') unlockBadge('sanctuary_seeker');
+    const hr = new Date().getHours();
+    if (hr >= 22 || hr <= 5) unlockBadge('night_owl');
+    renderBadges();
 
     // 6. Show result card
     const resultCard = document.createElement('div');

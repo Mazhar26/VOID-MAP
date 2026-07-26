@@ -91,7 +91,16 @@ export async function sendOTP(email, otp) {
   });
 
   if (error) {
-    console.error('[otp] Resend error:', error);
-    throw new Error('Failed to send OTP email.');
+    console.error('[otp] Resend API notice:', error.message || error);
+    if (config.NODE_ENV === 'development') {
+      console.log(`\n======================================================`);
+      console.log(`🔑 [DEV MODE OTP RECOVERY]`);
+      console.log(`   Recipient: ${email}`);
+      console.log(`   OTP Code:  ${otp}`);
+      console.log(`   Use this 6-digit code on the sign-in form!`);
+      console.log(`======================================================\n`);
+      return; // Return successfully in dev mode so testing is never blocked
+    }
+    throw new Error(`Failed to send OTP email: ${error.message || 'Resend API error'}`);
   }
 }

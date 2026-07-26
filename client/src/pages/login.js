@@ -35,7 +35,7 @@ export async function loginPage() {
       <!-- Step 2: OTP (hidden until email submitted) -->
       <form id="step-otp" style="display:none;">
         <p class="status-msg success" style="margin-bottom:0.5rem;">
-          ✅ OTP sent — check your email
+          ✅ OTP sent — check your email inbox (or server terminal window)
         </p>
         <input
           id="otpInput"
