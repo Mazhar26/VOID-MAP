@@ -10,43 +10,47 @@
 }
 
 :root {
-  /* Colors */
-  --bg-primary: #020308;
-  --bg-card: rgba(10, 13, 26, 0.00);
-  --bg-card-border: rgba(255, 255, 255, 0.00);
-  --accent: #ffd764;
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-muted: rgba(255, 255, 255, 0.4);
-  --success: #64ffb4;
-  --success-bg: rgba(100, 255, 180, 0.08);
-  --error: #ff6b8a;
-  --error-bg: rgba(255, 107, 138, 0.08);
-  --info: #7ccfff;
+  /* Warm Cream & Light Acoustic Palette */
+  --bg-primary: #fbf8f3;
+  --bg-card: rgba(255, 255, 255, 0.88);
+  --bg-card-border: rgba(225, 215, 200, 0.8);
+  --accent: #e65100;
+  --accent-lime: #2e7d32;
+  --accent-glow: rgba(230, 81, 0, 0.15);
+  --accent-gradient: linear-gradient(135deg, #e65100 0%, #ff7043 50%, #2e7d32 100%);
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-muted: #8c8275;
+  --success: #2e7d32;
+  --success-bg: rgba(46, 125, 50, 0.1);
+  --error: #d32f2f;
+  --error-bg: rgba(211, 47, 47, 0.1);
+  --info: #0288d1;
 
   /* Noise bucket colors */
-  --bucket-very-quiet: #64ffb4;
-  --bucket-quiet: #7ccfff;
-  --bucket-moderate: #ffd764;
-  --bucket-loud: #ff6b8a;
+  --bucket-very-quiet: #2e7d32;
+  --bucket-quiet: #0288d1;
+  --bucket-moderate: #f57f17;
+  --bucket-loud: #d32f2f;
 
   /* Radii */
-  --radius: 24px;
-  --radius-sm: 14px;
-  --radius-xs: 8px;
+  --radius: 30px;
+  --radius-sm: 16px;
+  --radius-xs: 10px;
 
   /* Transitions */
-  --transition: 0.25s ease;
+  --transition: 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #07080e;
-  background-image: 
-    radial-gradient(circle at 50% 20%, rgba(255, 92, 0, 0.14), transparent 60%),
-    radial-gradient(circle at 80% 80%, rgba(181, 255, 54, 0.08), transparent 50%);
+  background: #fbf8f3;
+  background-image:
+    radial-gradient(circle at 50% 15%, rgba(230, 81, 0, 0.09), transparent 60%),
+    radial-gradient(circle at 85% 85%, rgba(46, 125, 50, 0.08), transparent 50%),
+    radial-gradient(circle at 15% 75%, rgba(2, 136, 209, 0.06), transparent 50%);
   color: var(--text-primary);
   min-height: 100vh;
   display: flex;
@@ -299,8 +303,15 @@ h1 {
 }
 
 @keyframes recBlink {
-  0% { opacity: 0.3; transform: scale(0.85); }
-  100% { opacity: 1; transform: scale(1.2); }
+  0% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 .visualizer {
@@ -826,18 +837,18 @@ h1 {
   top: 1rem;
   z-index: 1000;
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto 2rem;
   padding: 0.75rem 1.5rem;
-  background: rgba(14, 18, 36, 0.75);
-  border: 1px solid rgba(255, 92, 0, 0.3);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(225, 215, 200, 0.9);
   border-radius: 50px;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 92, 0, 0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), 0 0 20px rgba(230, 81, 0, 0.08);
   animation: hsFadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -847,7 +858,7 @@ h1 {
   gap: 0.6rem;
   font-weight: 800;
   font-size: 1.1rem;
-  color: #fff;
+  color: #1c1917;
   text-decoration: none;
   letter-spacing: -0.02em;
 }
@@ -867,24 +878,24 @@ h1 {
 }
 
 .hs-nav-link:hover {
-  color: var(--accent-lime);
+  color: var(--accent);
 }
 
 .hs-nav-cta {
   padding: 0.5rem 1.3rem;
-  background: linear-gradient(135deg, #ff5c00 0%, #ff8c00 100%);
-  color: #07080e;
+  background: linear-gradient(135deg, #e65100 0%, #ff7043 100%);
+  color: #ffffff;
   font-weight: 700;
   font-size: 0.85rem;
   border-radius: 30px;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 15px rgba(255, 92, 0, 0.4);
+  box-shadow: 0 4px 15px rgba(230, 81, 0, 0.3);
 }
 
 .hs-nav-cta:hover {
   transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 8px 25px rgba(255, 92, 0, 0.6);
+  box-shadow: 0 8px 25px rgba(230, 81, 0, 0.45);
 }
 
 /* Kinetic Hero Section */
@@ -901,10 +912,10 @@ h1 {
   align-items: center;
   gap: 0.6rem;
   padding: 0.4rem 1.1rem;
-  background: rgba(255, 92, 0, 0.12);
-  border: 1px solid rgba(255, 92, 0, 0.35);
+  background: rgba(230, 81, 0, 0.1);
+  border: 1px solid rgba(230, 81, 0, 0.3);
   border-radius: 40px;
-  color: #ff8c00;
+  color: #e65100;
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -917,7 +928,7 @@ h1 {
   font-weight: 900;
   line-height: 1.08;
   letter-spacing: -0.035em;
-  background: linear-gradient(135deg, #ffffff 35%, #ff7a29 70%, #b5ff36 100%);
+  background: linear-gradient(135deg, #1c1917 25%, #e65100 70%, #2e7d32 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 1.2rem;
@@ -939,7 +950,7 @@ h1 {
   flex-wrap: wrap;
 }
 
-/* Handshake Bento Grid */
+/* Bento Grid */
 .hs-bento-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1013,21 +1024,47 @@ h1 {
 
 /* Keyframes */
 @keyframes hsFadeUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes hsFadeDown {
-  from { opacity: 0; transform: translateY(-24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes hsFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes hsPopIn {
-  from { opacity: 0; transform: scale(0.92) translateY(15px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }

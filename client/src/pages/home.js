@@ -149,24 +149,64 @@ export async function homePage() {
 
   function buildVisualizer() {
     return `
-      <div class="rec-pulse-badge">
-        <span class="rec-dot"></span> 🔴 REC • SAMPLING AMBIENT DECIBELS
+      <div class="rec-pulse-badge" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;font-weight:800;color:#d32f2f;margin-bottom:0.6rem;">
+        <span class="rec-dot"></span> 🔴 REC • SAMPLING AMBIENT SOUND WAVE
       </div>
-      <div class="visualizer" id="visualizer" aria-hidden="true">
-        ${Array.from({ length: 24 }, () => '<div class="bar" style="height:8px"></div>').join('')}
+      <div style="position:relative;margin:1rem auto 0.8rem;padding:0.7rem;background:rgba(255,255,255,0.92);border:1px solid rgba(230,81,0,0.3);border-radius:24px;max-width:440px;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
+        <canvas id="waveCanvas" width="400" height="70" style="width:100%;height:70px;display:block;border-radius:14px;"></canvas>
       </div>
-      <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-wrap" style="height:5px;background:rgba(0,0,0,0.06);border-radius:4px;"><div class="progress-bar" id="progressBar" style="height:100%;background:linear-gradient(90deg,#e65100,#2e7d32);border-radius:4px;"></div></div>
     `;
   }
 
-  function updateVisualizer(rms) {
-    const viz = el.querySelector('#visualizer');
-    if (!viz) return;
-    for (const bar of viz.children) {
-      const h = Math.max(6, Math.min(48, Math.round(rms * 850 + Math.random() * 14)));
-      bar.style.height = `${h}px`;
-      bar.style.opacity = (0.6 + (h / 48) * 0.4).toFixed(2);
+  function updateVisualizer(data, rms) {
+    const canvas = el.querySelector('#waveCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Background fill
+    ctx.fillStyle = 'rgba(251, 248, 243, 0.95)';
+    ctx.fillRect(0, 0, width, height);
+
+    // Center guideline
+    ctx.strokeStyle = 'rgba(230, 81, 0, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+
+    // Live continuous acoustic oscilloscope wave
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#e65100';
+    ctx.shadowColor = 'rgba(230, 81, 0, 0.4)';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+
+    if (data && data.length > 0) {
+      const sliceWidth = width / data.length;
+      let x = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = data[i] / 128.0;
+        const y = (v * height) / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
+      }
+    } else {
+      for (let x = 0; x < width; x += 2) {
+        const y = height / 2 + Math.sin(x * 0.05) * (rms * 120 + 3);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
     }
+
+    ctx.stroke();
+    ctx.shadowBlur = 0;
   }
 
   measureBtn.addEventListener('click', async () => {
@@ -201,9 +241,13 @@ export async function homePage() {
       const result = await captureAudio({
         durationMs: 5000,
         intervalMs: 100,
-        onProgress: ({ elapsedMs, totalMs, rms }) => {
+        onProgress: (p) => {
+          const elapsedMs = p?.elapsedMs ?? (typeof p === 'number' ? p * 5000 : 0);
+          const totalMs = p?.totalMs ?? 5000;
+          const rms = p?.rms ?? 0;
+          const data = p?.timeDomainData;
           if (progressBar) progressBar.style.width = `${(elapsedMs / totalMs) * 100}%`;
-          updateVisualizer(rms);
+          updateVisualizer(data, rms);
         },
       });
       avgRms = result.avgRms;

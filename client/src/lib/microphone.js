@@ -47,6 +47,14 @@ export async function getUserLocation(precision = 5) {
  * @returns {Promise<{avgRms: number, avgVariation: number}>}
  */
 export async function captureAudio(onSample, onProgress) {
+  let sampleCb = typeof onSample === 'function' ? onSample : null;
+  let progressCb = typeof onProgress === 'function' ? onProgress : null;
+
+  if (onSample && typeof onSample === 'object') {
+    progressCb = onSample.onProgress || null;
+    sampleCb = onSample.onSample || null;
+  }
+
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
       echoCancellation: false,
@@ -81,8 +89,6 @@ export async function captureAudio(onSample, onProgress) {
           return;
         }
 
-        onProgress?.(elapsed / MEASUREMENT_DURATION_MS);
-
         analyser.getByteTimeDomainData(data);
 
         let sum = 0;
@@ -98,7 +104,8 @@ export async function captureAudio(onSample, onProgress) {
         rmsValues.push(rms);
         variationValues.push(diffs / data.length);
 
-        onSample?.(rms);
+        sampleCb?.(rms);
+        progressCb?.({ elapsedMs: elapsed, totalMs: MEASUREMENT_DURATION_MS, rms, timeDomainData: data });
       }, SAMPLE_INTERVAL_MS);
     });
 
