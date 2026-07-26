@@ -61,11 +61,10 @@ body {
 .container {
   position: relative;
   z-index: 1;
-  max-width: 680px;
-  width: 92%;
-  padding: 3.5rem 2.5rem;
+  max-width: 1180px;
+  width: 95%;
+  padding: 2.5rem 2rem;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
 }
 
@@ -275,23 +274,57 @@ h1 {
   height: 14px;
 }
 
-/* ─── Visualizer ────────────────────────────────────────────────────────────── */
+/* ─── Visualizer & Recording Indicator ─────────────────────────────────────────── */
+
+.rec-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #ff3b6b;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3b6b;
+  box-shadow: 0 0 12px #ff3b6b;
+  animation: recBlink 0.8s infinite alternate;
+}
+
+@keyframes recBlink {
+  0% { opacity: 0.3; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
 
 .visualizer {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 3px;
-  height: 30px;
-  margin-top: 1rem;
+  gap: 4px;
+  height: 55px;
+  margin: 1.2rem auto 0.8rem;
+  padding: 0.8rem 1.2rem;
+  background: rgba(14, 18, 36, 0.8);
+  border: 1px solid rgba(255, 92, 0, 0.4);
+  border-radius: 20px;
+  max-width: 420px;
+  box-shadow: 0 0 30px rgba(255, 92, 0, 0.25);
 }
 
 .visualizer .bar {
-  width: 3px;
-  background: var(--accent);
-  border-radius: 2px;
+  width: 5px;
+  background: linear-gradient(to top, #ff5c00 0%, #b5ff36 100%);
+  border-radius: 4px;
   transition: height 0.08s ease;
-  opacity: 0.6;
+  opacity: 0.9;
+  box-shadow: 0 0 8px rgba(255, 92, 0, 0.5);
 }
 
 /* ─── Stats Panel ───────────────────────────────────────────────────────────── */
@@ -785,7 +818,7 @@ h1 {
   filter: drop-shadow(0 0 35px rgba(255, 92, 0, 0.7)) drop-shadow(0 0 60px rgba(181, 255, 54, 0.5));
 }
 
-/* ─── Handshake AI Modern UI & Motion Architecture Rules ─────────────────── */
+/* ─── VOID-MAP Kinetic UI & Motion Architecture Rules ─────────────────── */
 
 /* Sticky Glass Navbar */
 .hs-nav {
@@ -854,7 +887,7 @@ h1 {
   box-shadow: 0 8px 25px rgba(255, 92, 0, 0.6);
 }
 
-/* Handshake Kinetic Hero Section */
+/* Kinetic Hero Section */
 .hs-hero {
   text-align: center;
   padding: 2.5rem 1rem 3rem;

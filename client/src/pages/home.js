@@ -1,4 +1,4 @@
-// ─── Home Page — Handshake AI Product Landing & Guest Free Trial Flow ─────────
+// ─── Home Page — VOID-MAP Product Landing & Guest Free Trial Flow ─────────
 // Multi-page landing page featuring kinetic hero, bento box product grid,
 // 1-time free guest trial measurement, and gated conversion modals.
 
@@ -31,9 +31,9 @@ function getHeaderNav() {
       <div class="hs-nav-links">
         <a href="#/map" class="hs-nav-link">🗺️ Map</a>
         ${user?.isAdmin ? `<a href="#/admin" class="hs-nav-link">📊 Admin</a>` : ''}
-        ${token 
-          ? `<a href="#/login" id="logoutNavBtn" class="hs-nav-link" style="color:var(--error);">Sign out</a>`
-          : `<a href="#/login" class="hs-nav-cta">SIGN IN</a>`}
+        ${token
+      ? `<a href="#/login" id="logoutNavBtn" class="hs-nav-link" style="color:var(--error);">Sign out</a>`
+      : `<a href="#/login" class="hs-nav-cta">SIGN IN</a>`}
       </div>
     </nav>
   `;
@@ -50,7 +50,7 @@ export async function homePage() {
   el.innerHTML = `
     ${getHeaderNav()}
 
-    <!-- Handshake AI Kinetic Hero -->
+    <!-- Kinetic Hero -->
     <div class="hs-hero">
       <div class="hs-hero-badge">
         <span class="pulse-dot"></span> ⚡ ACOUSTIC SANCTUARY RADAR
@@ -62,7 +62,7 @@ export async function homePage() {
 
       <div class="hs-hero-actions">
         <button class="measure-btn zap-btn" id="measureBtn" aria-label="Measure ambient silence level">
-          <span class="btn-text">🔥 TRY 1-TIME FREE MEASUREMENT</span>
+          <span class="btn-text">${token ? 'MEASURE SILENCE' : '🔥 TRY FREE MEASUREMENT'}</span>
         </button>
         <button id="soundscapeBtn" class="btn-mini" style="padding:1.1rem 1.8rem;font-weight:700;border-radius:40px;background:rgba(255,92,0,0.12);border:1px solid rgba(255,92,0,0.4);color:#ff8c00;cursor:pointer;transition:all 0.3s ease;">
           🎧 Listen to Sanctuary Audio
@@ -76,7 +76,7 @@ export async function homePage() {
     <!-- Live Status & Trial Result Area -->
     <div class="status-area" id="statusArea" role="status" aria-live="polite" style="max-width:540px;margin:0 auto 3rem;"></div>
 
-    <!-- Handshake AI Bento Box Feature Showcase -->
+    <!-- Bento Box Feature Showcase -->
     <div class="hs-bento-grid">
       <div class="hs-bento-card">
         <div class="hs-bento-icon">🛡️</div>
@@ -95,7 +95,7 @@ export async function homePage() {
       </div>
     </div>
 
-    <div class="copyright" style="margin-top:3rem;">© 2077 VOID-MAP Inc. • Handshake UI Architecture</div>
+    <div class="copyright" style="margin-top:3rem;">© 2077 VOID-MAP Inc.</div>
   `;
 
   // Logout handler
@@ -111,8 +111,8 @@ export async function homePage() {
   const soundscapeBtn = el.querySelector('#soundscapeBtn');
   soundscapeBtn?.addEventListener('click', () => {
     isPlayingSoundscape = toggleSanctuarySoundscape(!isPlayingSoundscape);
-    soundscapeBtn.textContent = isPlayingSoundscape 
-      ? '⏸️ Pause Sanctuary Audio' 
+    soundscapeBtn.textContent = isPlayingSoundscape
+      ? '⏸️ Pause Sanctuary Audio'
       : '🎧 Listen to Sanctuary Audio';
     soundscapeBtn.style.background = isPlayingSoundscape ? 'rgba(181,255,54,0.18)' : 'rgba(255,92,0,0.12)';
     soundscapeBtn.style.color = isPlayingSoundscape ? '#b5ff36' : '#ff8c00';
@@ -144,21 +144,28 @@ export async function homePage() {
 
   function setMeasuring(active) {
     measureBtn.disabled = active;
-    measureBtn.querySelector('.btn-text').textContent = active ? 'Listening…' : '🔥 TRY 1-TIME FREE MEASUREMENT';
+    measureBtn.querySelector('.btn-text').textContent = active ? 'Listening…' : (token ? 'MEASURE SILENCE' : '🔥 TRY FREE MEASUREMENT');
   }
 
   function buildVisualizer() {
-    return `<div class="visualizer" id="visualizer" aria-hidden="true">
-      ${Array.from({ length: 20 }, () => '<div class="bar" style="height:4px"></div>').join('')}
-    </div>
-    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>`;
+    return `
+      <div class="rec-pulse-badge">
+        <span class="rec-dot"></span> 🔴 REC • SAMPLING AMBIENT DECIBELS
+      </div>
+      <div class="visualizer" id="visualizer" aria-hidden="true">
+        ${Array.from({ length: 24 }, () => '<div class="bar" style="height:8px"></div>').join('')}
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    `;
   }
 
   function updateVisualizer(rms) {
     const viz = el.querySelector('#visualizer');
     if (!viz) return;
     for (const bar of viz.children) {
-      bar.style.height = Math.max(3, Math.min(28, rms * 800 + Math.random() * 10)) + 'px';
+      const h = Math.max(6, Math.min(48, Math.round(rms * 850 + Math.random() * 14)));
+      bar.style.height = `${h}px`;
+      bar.style.opacity = (0.6 + (h / 48) * 0.4).toFixed(2);
     }
   }
 
