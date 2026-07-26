@@ -52,7 +52,7 @@ async function navigate() {
 
   // Redirect logged-in users away from login page
   if (hash === '#/login' && isLoggedIn()) {
-    window.location.hash = '#/';
+    window.location.hash = '#/home';
     return;
   }
 

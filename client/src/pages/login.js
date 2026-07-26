@@ -154,8 +154,8 @@ export async function loginPage() {
       localStorage.setItem('voidmap_token', token);
       localStorage.setItem('voidmap_user', JSON.stringify(user));
 
-      // Redirect admin to dashboard, regular users to home
-      navigateTo(user.isAdmin ? '#/admin' : '#/');
+      // Redirect admin to dashboard, regular users to home dashboard (#/home)
+      navigateTo(user.isAdmin ? '#/admin' : '#/home');
 
     } catch (err) {
       otpMsg.textContent = `⚠️ ${err.message}`;

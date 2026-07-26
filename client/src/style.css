@@ -960,8 +960,8 @@ h1 {
 }
 
 .hs-bento-card {
-  background: rgba(14, 18, 36, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(238, 239, 241);
+  border: 1px solid rgba(255, 255, 255, 0.982);
   border-radius: 24px;
   padding: 1.8rem 1.5rem;
   text-align: left;
@@ -1066,5 +1066,505 @@ h1 {
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+/* ─── Awwwards Landing & Guest Demo Styles ───────────────────────────────────── */
+
+/* 1. Landing Page (.landing-*) */
+.landing-outer-frame {
+  min-height: 100vh;
+  width: 100vw;
+  background-color: #d9d9d9;
+  padding: 30px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.landing-inner-card {
+  width: 100%;
+  height: calc(100vh - 60px);
+  min-height: 600px;
+  background-color: #e8e8e8;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.landing-nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 20;
+}
+
+.landing-logo {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: #000000;
+  letter-spacing: -0.02em;
+}
+
+.landing-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.landing-nav-pill {
+  background-color: #ffffff;
+  border-radius: 999px;
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.landing-nav-link {
+  color: #000000;
+  text-decoration: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  transition: opacity 0.2s ease;
+}
+
+.landing-nav-link:hover {
+  opacity: 0.7;
+}
+
+.landing-nav-link.active {
+  font-weight: 900;
+}
+
+.landing-try-btn {
+  background-color: #F24E1E;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.landing-try-btn:hover {
+  transform: scale(1.04);
+}
+
+.landing-chevron {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #000000;
+  font-size: 40px;
+  font-weight: 300;
+  cursor: pointer;
+  z-index: 30;
+  transition: transform 0.2s ease;
+  padding: 10px;
+  line-height: 1;
+}
+
+.landing-chevron-left {
+  left: 25px;
+}
+
+.landing-chevron-right {
+  right: 25px;
+}
+
+.landing-chevron:hover {
+  transform: translateY(-50%) scale(1.2);
+}
+
+.landing-hero-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.landing-hero-bg-text {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: clamp(120px, 18vw, 280px);
+  font-weight: 900;
+  color: #000000;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-align: center;
+  margin: 0;
+  user-select: none;
+  z-index: 1;
+}
+
+/* Pure CSS Rotating Black Hole Visual */
+.landing-black-hole {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle at center,
+      #000 0%,
+      #000 32%,
+      #1a1a1a 42%,
+      #ff6b1a 54%,
+      #F24E1E 62%,
+      rgba(242, 78, 30, 0.3) 72%,
+      transparent 82%);
+  border-radius: 50%;
+  box-shadow: 0 0 100px rgba(242, 78, 30, 0.4), inset 0 0 60px #000;
+  z-index: 2;
+  animation: landingBlackHoleRotate 20s linear infinite, landingBlackHolePulse 4s ease-in-out infinite;
+}
+
+.landing-pulse-dot {
+  position: absolute;
+  top: calc(50% - 280px);
+  left: calc(50% + 180px);
+  width: 22px;
+  height: 22px;
+  background-color: #F24E1E;
+  border-radius: 50%;
+  box-shadow: 0 0 20px #F24E1E;
+  z-index: 3;
+  animation: landingDotFloat 3s ease-in-out infinite alternate;
+}
+
+.landing-bottom-caption {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: 0.05em;
+  z-index: 20;
+}
+
+/* 2. Guest Demo Page (.try-*) */
+.try-outer-frame {
+  min-height: 100vh;
+  width: 100vw;
+  background-color: #d9d9d9;
+  padding: 30px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.try-inner-card {
+  width: 100%;
+  height: calc(100vh - 60px);
+  min-height: 600px;
+  background-color: #e8e8e8;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.try-nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 20;
+}
+
+.try-logo {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: #000000;
+  letter-spacing: -0.02em;
+}
+
+.try-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.try-nav-pill {
+  background-color: #ffffff;
+  border-radius: 999px;
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.try-nav-link {
+  color: #000000;
+  text-decoration: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  transition: opacity 0.2s ease;
+}
+
+.try-nav-link:hover {
+  opacity: 0.7;
+}
+
+.try-signin-btn {
+  background-color: #F24E1E;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.try-signin-btn:hover {
+  transform: scale(1.04);
+}
+
+.try-center-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  text-align: center;
+  z-index: 10;
+
+}
+
+.try-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #000000;
+  margin-bottom: 5px;
+}
+
+.try-db-readout {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: clamp(80px, 12vw, 180px);
+  color: #000000;
+  line-height: 1;
+  margin: 5px 0;
+  user-select: none;
+}
+
+.try-pulse-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #F24E1E 0%, rgba(242, 78, 30, 0.2) 60%, transparent 100%);
+  margin: 10px 0;
+  transition: transform 0.1s ease-out;
+}
+
+.try-classification-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.try-toggle-btn {
+  background-color: #F24E1E;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 999px;
+  padding: 14px 32px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.try-toggle-btn:hover {
+  transform: scale(1.04);
+}
+
+.try-error-msg {
+  color: #dc2626;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  max-width: 420px;
+  margin-top: 15px;
+  line-height: 1.4;
+}
+
+.try-bottom-cta-banner {
+  background-color: #000000;
+  border-radius: 12px;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: calc(100% - 80px);
+  position: absolute;
+  bottom: 30px;
+  left: 40px;
+  z-index: 20;
+  box-sizing: border-box;
+}
+
+.try-cta-text {
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.try-cta-btn {
+  background-color: #ffffff;
+  color: #000000;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 10px 24px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.try-cta-btn:hover {
+  opacity: 0.85;
+}
+
+/* Animations */
+@keyframes landingBlackHoleRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes landingBlackHolePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes landingDotFloat {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Responsive Rules */
+@media (max-width: 768px) {
+  .landing-outer-frame, .try-outer-frame {
+    padding: 15px;
+  }
+
+  .landing-inner-card, .try-inner-card {
+    padding: 20px;
+    min-height: 500px;
+  }
+
+  .landing-nav-right, .try-nav-right {
+    gap: 10px;
+  }
+
+  .landing-nav-pill, .try-nav-pill {
+    gap: 16px;
+    padding: 8px 18px;
+  }
+
+  .landing-nav-link, .try-nav-link {
+    font-size: 12px;
+  }
+
+  .landing-try-btn, .try-signin-btn {
+    padding: 8px 18px;
+    font-size: 11px;
+  }
+
+  .landing-black-hole {
+    width: 300px;
+    height: 300px;
+  }
+
+  .landing-pulse-dot {
+    top: calc(50% - 170px);
+    left: calc(50% + 110px);
+    width: 16px;
+    height: 16px;
+  }
+
+  .landing-chevron {
+    display: none;
+  }
+
+  .landing-bottom-caption {
+    bottom: 15px;
+    right: 20px;
+    font-size: 12px;
+  }
+
+  .try-pulse-circle {
+    width: 150px;
+    height: 150px;
+  }
+
+  .try-bottom-cta-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+    width: calc(100% - 40px);
+    left: 20px;
+    bottom: 15px;
+    padding: 15px;
   }
 }
