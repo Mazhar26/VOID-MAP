@@ -25,21 +25,48 @@ function encodeGeohash(lat, lon, precision = 5) {
   return hash;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const VALID_NOISE_LEVELS = new Set(['very_quiet', 'quiet', 'moderate', 'loud']);
+const MAX_ADDRESS_LEN = 300;
+const MAX_NOTE_LEN = 500;
+
 // ─── POST /api/locations ──────────────────────────────────────────────────────
 router.post('/', requireAuth, async (req, res, next) => {
   try {
     const { latitude, longitude, address, noise_level, is_public, note } = req.body;
     const userId = req.user.id;
 
-    // Validation
-    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    // Coordinate validation — finite numbers within valid ranges
+    if (
+      typeof latitude !== 'number' ||
+      typeof longitude !== 'number' ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 || latitude > 90 ||
+      longitude < -180 || longitude > 180
+    ) {
       return res.status(400).json({ error: "Invalid or missing 'latitude'/'longitude'" });
     }
 
+    // Noise level — must be from the allowed set if provided
     const noiseLevel = typeof noise_level === 'string' ? noise_level.trim() : null;
+    if (noiseLevel && !VALID_NOISE_LEVELS.has(noiseLevel)) {
+      return res.status(400).json({ error: "Invalid 'noise_level'" });
+    }
+
     const isPublic = is_public === true;
-    const noteText = typeof note === 'string' ? note.trim() : null;
+
+    // Address — string, max 300 chars
     const addr = typeof address === 'string' ? address.trim() : null;
+    if (addr && addr.length > MAX_ADDRESS_LEN) {
+      return res.status(400).json({ error: `Address must be ${MAX_ADDRESS_LEN} characters or less.` });
+    }
+
+    // Note — string, max 500 chars
+    const noteText = typeof note === 'string' ? note.trim() : null;
+    if (noteText && noteText.length > MAX_NOTE_LEN) {
+      return res.status(400).json({ error: `Note must be ${MAX_NOTE_LEN} characters or less.` });
+    }
 
     const geohash = encodeGeohash(latitude, longitude, 5);
 
@@ -85,15 +112,24 @@ router.get('/public', async (req, res, next) => {
   try {
     const { lat, lon, radius } = req.query;
 
-    // If coordinates and radius are provided, perform client-side/database filtering.
-    // For now, let's select all public locations.
-    // (Optional optimization: Filter by geohash box or simple bounding box if coordinates provided).
+    // Pagination — default 100, max 100
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 100);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+    // Reduce precision to ~11m (4 decimal places) for public responses.
+    // Exclude address and note for privacy.
     let sql = `
-      SELECT id, latitude, longitude, geohash, address, noise_level, is_public, note, created_at
+      SELECT id,
+             ROUND(latitude::numeric,  4)::float AS latitude,
+             ROUND(longitude::numeric, 4)::float AS longitude,
+             geohash,
+             noise_level,
+             created_at
       FROM saved_locations
       WHERE is_public = TRUE
     `;
     const params = [];
+    let paramIdx = 1;
 
     if (lat && lon && radius) {
       const latitude = parseFloat(lat);
@@ -102,14 +138,16 @@ router.get('/public', async (req, res, next) => {
 
       if (!isNaN(latitude) && !isNaN(longitude) && !isNaN(r)) {
         const centerHash = encodeGeohash(latitude, longitude, 3);
-        sql += ` AND latitude BETWEEN $1 - $3 AND $1 + $3
-                 AND longitude BETWEEN $2 - $3 AND $2 + $3
-                 AND geohash LIKE $4`;
+        sql += ` AND latitude BETWEEN $${paramIdx} - $${paramIdx + 2} AND $${paramIdx} + $${paramIdx + 2}
+                 AND longitude BETWEEN $${paramIdx + 1} - $${paramIdx + 2} AND $${paramIdx + 1} + $${paramIdx + 2}
+                 AND geohash LIKE $${paramIdx + 3}`;
         params.push(latitude, longitude, r, `${centerHash}%`);
+        paramIdx += 4;
       }
     }
 
-    sql += ` ORDER BY created_at DESC`;
+    sql += ` ORDER BY created_at DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+    params.push(limit, offset);
 
     const result = await query(sql, params);
     return res.json(result.rows);

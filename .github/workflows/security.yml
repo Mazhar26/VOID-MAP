@@ -19,18 +19,27 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Server Dependencies
+        run: |
+          cd server
+          npm ci
+
       - name: Audit Server Dependencies
         run: |
           cd server
-          npm audit --audit-level=high || true
+          npm audit --omit=dev --audit-level=high
+
+      - name: Install Client Dependencies
+        run: |
+          cd client
+          npm ci
 
       - name: Audit Client Dependencies
         run: |
           cd client
-          npm audit --audit-level=high || true
+          npm audit --omit=dev --audit-level=high
 
-      - name: Install Client Dependencies & Test Build
+      - name: Test Client Build
         run: |
           cd client
-          npm install
           npm run build

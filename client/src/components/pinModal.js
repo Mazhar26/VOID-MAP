@@ -23,7 +23,7 @@ export function showPinModal(locationData, onSave, onCancel) {
       <div class="modal-fields">
         <label>
           Pin Type
-          <select id="pinVisibility" class="input-field" style="background:#0a0d1a;">
+          <select id="pinVisibility" class="input-field" style="background:#ffffff;">
             <option value="private">🔒 Keep it private (My Pins only)</option>
             <option value="public">🤝 Share with community (Gold stars on map)</option>
           </select>
@@ -31,12 +31,12 @@ export function showPinModal(locationData, onSave, onCancel) {
         
         <label>
           Add a note (optional)
-          <textarea id="pinNote" class="input-field" rows="2" placeholder="e.g. Peaceful park, silent corner near the fountain." style="resize:none; background:#0a0d1a;"></textarea>
+          <textarea id="pinNote" class="input-field" rows="2" placeholder="e.g. Peaceful park, silent corner near the fountain." style="resize:none; background:#ffffff;"></textarea>
         </label>
       </div>
 
       <div class="modal-actions">
-        <button id="modalCancelBtn" class="btn-secondary">Cancel</button>
+        <button id="modalCancelBtn" class="btn-secondary" style="width: auto; background:#F24E1E; color:#000000;">Cancel</button>
         <button id="modalSaveBtn" class="btn-primary" style="width: auto;">Save Pin</button>
       </div>
     </div>

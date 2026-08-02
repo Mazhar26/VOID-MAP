@@ -1,8 +1,9 @@
 // ─── Rate Limiter ────────────────────────────────────────────────────────────
 // Protects all API routes from abuse.
-// We define two limiters:
+// We define three limiters:
 //   1. apiLimiter    — general routes (100 req/15min per IP)
 //   2. authLimiter   — auth routes (10 req/15min per IP) — stricter
+//   3. signalLimiter — signal writes (10 req/min per IP) — prevents data poisoning
 
 import rateLimit from 'express-rate-limit';
 
@@ -20,4 +21,12 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many auth attempts, please try again in 15 minutes.' },
+});
+
+export const signalLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many signal submissions. Please try again shortly.' },
 });

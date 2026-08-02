@@ -118,6 +118,55 @@ router.get('/users', async (req, res, next) => {
   }
 });
 
+// ─── DELETE /api/admin/users/:id ──────────────────────────────────────────────
+router.delete('/users/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    // Don't allow admins to delete themselves
+    if (id === req.user.id) {
+      return res.status(400).json({ error: 'You cannot delete your own account while logged in.' });
+    }
+
+    const deleteRes = await query('DELETE FROM users WHERE id = $1 RETURNING id, email', [id]);
+    if (deleteRes.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    return res.json({ message: 'User deleted successfully.', deletedUser: deleteRes.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── PATCH /api/admin/users/:id/role ─────────────────────────────────────────
+router.patch('/users/:id/role', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { isAdmin } = req.body;
+
+    if (typeof isAdmin !== 'boolean') {
+      return res.status(400).json({ error: 'isAdmin boolean field is required.' });
+    }
+
+    if (id === req.user.id && !isAdmin) {
+      return res.status(400).json({ error: 'You cannot demote yourself from admin.' });
+    }
+
+    const updateRes = await query(
+      'UPDATE users SET is_admin = $1 WHERE id = $2 RETURNING id, email, is_admin',
+      [isAdmin, id]
+    );
+
+    if (updateRes.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    return res.json({ message: 'User role updated successfully.', user: updateRes.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
 function round(val, dec) {
   return Number(Math.round(val + 'e' + dec) + 'e-' + dec);
 }

@@ -17,6 +17,10 @@ const router = Router();
 // Apply strict rate limiting to all auth routes
 router.use(authLimiter);
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const MAX_OTP_ATTEMPTS = 5;
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 const GMAIL_REGEX = /^[^@]+@gmail\.com$/i;
@@ -43,6 +47,9 @@ async function issueOTP(userId, email) {
   await sendOTP(email, otp);
 }
 
+// Generic response used by both signup and login to avoid account enumeration.
+const OTP_SENT_MESSAGE = 'If this email is eligible, an OTP has been sent.';
+
 // ─── POST /api/auth/signup ────────────────────────────────────────────────────
 
 router.post('/signup', async (req, res, next) => {
@@ -60,11 +67,9 @@ router.post('/signup', async (req, res, next) => {
     );
 
     if (existing.rows.length > 0) {
-      // User exists — redirect them to the login flow
-      return res.status(409).json({
-        error: 'An account with this email already exists. Please log in instead.',
-        action: 'login',
-      });
+      // User exists — send generic response to prevent enumeration.
+      // The frontend can prompt "try logging in" as a general suggestion.
+      return res.json({ message: OTP_SENT_MESSAGE });
     }
 
     // Use a transaction: if OTP email fails, roll back the user insert
@@ -102,8 +107,7 @@ router.post('/signup', async (req, res, next) => {
       client.release();
     }
 
-
-    return res.status(201).json({ message: 'OTP sent to your email.' });
+    return res.status(201).json({ message: OTP_SENT_MESSAGE });
 
   } catch (err) {
     next(err);
@@ -126,17 +130,15 @@ router.post('/login', async (req, res, next) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        error: 'No account found with this email. Please sign up first.',
-        action: 'signup',
-      });
+      // User does not exist — send generic response to prevent enumeration
+      return res.json({ message: OTP_SENT_MESSAGE });
     }
 
     const userId = result.rows[0].id;
 
     await issueOTP(userId, email);
 
-    return res.json({ message: 'OTP sent to your email.' });
+    return res.json({ message: OTP_SENT_MESSAGE });
 
   } catch (err) {
     next(err);
@@ -162,14 +164,14 @@ router.post('/verify-otp', async (req, res, next) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Account not found.' });
+      return res.status(401).json({ error: 'OTP expired or invalid.' });
     }
 
     const user = userResult.rows[0];
 
-    // Get the latest unused, non-expired OTP for this user
+    // Get the latest unused, non-expired, non-locked OTP for this user
     const otpResult = await query(
-      `SELECT id, code_hash
+      `SELECT id, code_hash, attempt_count, locked_at
        FROM otp_codes
        WHERE user_id = $1
          AND used = FALSE
@@ -180,20 +182,45 @@ router.post('/verify-otp', async (req, res, next) => {
     );
 
     if (otpResult.rows.length === 0) {
-      return res.status(401).json({ error: 'OTP expired or not found. Please request a new one.' });
+      return res.status(401).json({ error: 'OTP expired or invalid.' });
     }
 
-    const { id: otpId, code_hash } = otpResult.rows[0];
+    const { id: otpId, code_hash, attempt_count, locked_at } = otpResult.rows[0];
+
+    // Reject if OTP is locked (too many failed attempts)
+    if (locked_at || attempt_count >= MAX_OTP_ATTEMPTS) {
+      return res.status(401).json({ error: 'OTP expired or invalid.' });
+    }
 
     // Compare submitted OTP against stored hash
     const isValid = await verifyOTP(otp, code_hash);
 
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid OTP. Please try again.' });
+      // Increment attempt counter; lock if threshold reached
+      await query(
+        `UPDATE otp_codes
+         SET attempt_count = attempt_count + 1,
+             locked_at = CASE WHEN attempt_count + 1 >= $2 THEN NOW() ELSE locked_at END
+         WHERE id = $1`,
+        [otpId, MAX_OTP_ATTEMPTS]
+      );
+      return res.status(401).json({ error: 'OTP expired or invalid.' });
     }
 
-    // Mark OTP as used (prevents replay attacks)
-    await query(`UPDATE otp_codes SET used = TRUE WHERE id = $1`, [otpId]);
+    // Atomically mark OTP as used — only succeeds if still unused.
+    // This prevents race conditions where two concurrent requests
+    // with the same valid OTP could both obtain JWTs.
+    const markUsed = await query(
+      `UPDATE otp_codes SET used = TRUE
+       WHERE id = $1 AND used = FALSE
+       RETURNING id`,
+      [otpId]
+    );
+
+    if (markUsed.rowCount !== 1) {
+      // Another concurrent request already consumed this OTP
+      return res.status(401).json({ error: 'OTP expired or invalid.' });
+    }
 
     // Update stay_logged_in preference
     await query(`UPDATE users SET stay_logged_in = $1 WHERE id = $2`, [stayLoggedIn, user.id]);

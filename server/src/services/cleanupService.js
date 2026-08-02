@@ -14,6 +14,15 @@ let cleanupInterval = null;
 
 async function runCleanup() {
   try {
+    // Purge expired/used OTP codes — prevents indefinite accumulation
+    const otpResult = await query(
+      `DELETE FROM otp_codes WHERE expires_at < NOW() OR used = TRUE`
+    );
+    if (otpResult.rowCount > 0) {
+      console.log(`[cleanup] Purged ${otpResult.rowCount} expired/used OTP(s).`);
+    }
+
+    // Purge expired noise signals
     const result = await query(
       `DELETE FROM noise_signals WHERE expires_at < NOW()`
     );

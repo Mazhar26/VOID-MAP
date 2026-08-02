@@ -1,0 +1,34 @@
+# ─── Root .gitignore ─────────────────────────────────────────────────────────
+
+# Historical planning & legacy archives (keep local, hide from GitHub)
+phases/
+archive/
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables — NEVER commit secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Build Outputs
+dist/
+**/dist/
+
+# Logs & Temp Media
+*.log
+*.webp
+npm-debug.log*
+
+# OS System Files
+.DS_Store
+Thumbs.db
+
+# Local security scan outputs
+security-reports/
+VOID-MAP-review-bundle.txt

@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import { query } from '../config/db.js';
 import { config } from '../config/env.js';
+import { signalLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -24,9 +25,12 @@ const WEIGHTS = {
 const CONFIDENCE_THRESHOLD_LOW  = 5;
 const CONFIDENCE_THRESHOLD_HIGH = 20;
 
+// Valid geohash: base32 charset, 3-8 characters
+const GEOHASH_RE = /^[0123456789bcdefghjkmnpqrstuvwxyz]{3,8}$/;
+
 // ─── POST /api/signal ─────────────────────────────────────────────────────────
 
-router.post('/signal', async (req, res, next) => {
+router.post('/signal', signalLimiter, async (req, res, next) => {
   try {
     const { ts, geo, noise_bucket, latitude, longitude, rms_value } = req.body;
 
@@ -41,7 +45,9 @@ router.post('/signal', async (req, res, next) => {
       return res.status(400).json({ error: 'Timestamp is too far from server time' });
     }
 
-    if (typeof geo !== 'string' || geo.trim().length < 3) {
+    // Geohash: must be valid base32 charset, 3-8 chars
+    const geoTrimmed = typeof geo === 'string' ? geo.trim().toLowerCase() : '';
+    if (!GEOHASH_RE.test(geoTrimmed)) {
       return res.status(400).json({ error: "Invalid or missing 'geo'" });
     }
 
@@ -50,8 +56,25 @@ router.post('/signal', async (req, res, next) => {
       return res.status(400).json({ error: "Invalid 'noise_bucket'" });
     }
 
-    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    // Coordinates: must be finite numbers within valid ranges
+    if (
+      typeof latitude !== 'number' ||
+      typeof longitude !== 'number' ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 || latitude > 90 ||
+      longitude < -180 || longitude > 180
+    ) {
       return res.status(400).json({ error: "Invalid or missing 'latitude'/'longitude'" });
+    }
+
+    // rms_value: optional, but if present must be a non-negative finite number
+    if (
+      rms_value !== undefined &&
+      rms_value !== null &&
+      (typeof rms_value !== 'number' || !Number.isFinite(rms_value) || rms_value < 0)
+    ) {
+      return res.status(400).json({ error: "Invalid 'rms_value'" });
     }
 
     // --- Insert ---
@@ -63,7 +86,7 @@ router.post('/signal', async (req, res, next) => {
          (geohash, noise_bucket, latitude, longitude, rms_value, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [
-        geo.trim(),
+        geoTrimmed,
         bucket,
         latitude,
         longitude,

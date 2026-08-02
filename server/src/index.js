@@ -9,6 +9,10 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { startCleanupService } from './services/cleanupService.js';
 import signalRoutes from './routes/signalRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import locationRoutes from './routes/locationRoutes.js';
+import recommendRoutes from './routes/recommendRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import { query } from './config/db.js';
 
 // ─── Prometheus Metrics ───────────────────────────────────────────────────────
@@ -34,6 +38,11 @@ export const activeSignalsGauge = new client.Gauge({
 
 // ─── App Setup ────────────────────────────────────────────────────────────────
 const app = express();
+
+// Trust first proxy (Koyeb / Cloudflare) so rate limiters see real client IPs
+if (config.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 // Security headers
 app.use(helmet());
@@ -68,8 +77,20 @@ app.get('/health', (_req, res) => {
 });
 
 // ─── Prometheus Metrics Endpoint ──────────────────────────────────────────────
-// Not behind auth — Grafana scrapes this
-app.get('/metrics', async (_req, res) => {
+// Protected by optional METRICS_TOKEN bearer token.
+// In production without a token configured, the endpoint is disabled.
+app.get('/metrics', async (req, res) => {
+  // If a METRICS_TOKEN is configured, require it as a bearer token
+  if (config.METRICS_TOKEN) {
+    const auth = req.headers.authorization;
+    if (!auth || auth !== `Bearer ${config.METRICS_TOKEN}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  } else if (config.NODE_ENV === 'production') {
+    // No token configured in production — disable endpoint entirely
+    return res.status(404).json({ error: 'Not found.' });
+  }
+
   try {
     const result = await query('SELECT COUNT(*) AS count FROM noise_signals WHERE expires_at > NOW()');
     const count = parseInt(result.rows[0].count, 10);
@@ -83,18 +104,16 @@ app.get('/metrics', async (_req, res) => {
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api', signalRoutes);
-
-import authRoutes from './routes/authRoutes.js';
 app.use('/api/auth', authRoutes);
-
-import locationRoutes from './routes/locationRoutes.js';
 app.use('/api/locations', locationRoutes);
-
-import recommendRoutes from './routes/recommendRoutes.js';
 app.use('/api/recommendations', recommendRoutes);
-
-import adminRoutes from './routes/adminRoutes.js';
 app.use('/api/admin', adminRoutes);
+
+// ─── 404 Catch-All ────────────────────────────────────────────────────────────
+// Returns consistent JSON for unknown routes instead of Express HTML defaults
+app.use((_req, res) => {
+  res.status(404).json({ error: 'Not found.' });
+});
 
 // ─── Global Error Handler (must be LAST) ──────────────────────────────────────
 app.use(errorHandler);
@@ -104,7 +123,9 @@ if (config.NODE_ENV !== 'test') {
   app.listen(config.PORT, () => {
     console.log(`[server] VOID-MAP running on http://localhost:${config.PORT}`);
     console.log(`[server] Environment: ${config.NODE_ENV}`);
-    console.log(`[server] Metrics:     http://localhost:${config.PORT}/metrics`);
+    if (config.NODE_ENV !== 'production' || config.METRICS_TOKEN) {
+      console.log(`[server] Metrics:     http://localhost:${config.PORT}/metrics`);
+    }
 
     // Start background services
     startCleanupService();

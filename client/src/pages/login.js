@@ -12,7 +12,7 @@ export async function loginPage() {
   el.innerHTML = `
     <nav class="hs-nav" aria-label="Main Navigation">
       <a href="#/" class="hs-brand">
-        <span style="font-size:1.4rem;">🌙</span> VOID-MAP
+        <span class="void-brand-icon" aria-hidden="true"></span> VOID-MAP
       </a>
       <div class="hs-nav-links">
         <a href="#/" class="hs-nav-link">Home</a>
@@ -33,6 +33,7 @@ export async function loginPage() {
           class="input-field"
           type="email"
           placeholder="your@gmail.com"
+          style="background:#ffffff; color:#000000;"
           autocomplete="email"
           aria-label="Gmail address"
           required
@@ -53,6 +54,7 @@ export async function loginPage() {
           inputmode="numeric"
           maxlength="6"
           placeholder="6-digit code"
+          style="background:#ffffff; color:#000000;"
           autocomplete="one-time-code"
           aria-label="One-time password"
           required
@@ -81,10 +83,10 @@ export async function loginPage() {
 
   // ─── Step 1: Email submit ─────────────────────────────────────────────────
   const emailInput = el.querySelector('#emailInput');
-  const emailBtn   = el.querySelector('#emailBtn');
-  const authMsg    = el.querySelector('#authMsg');
-  const stepEmail  = el.querySelector('#step-email');
-  const stepOtp    = el.querySelector('#step-otp');
+  const emailBtn = el.querySelector('#emailBtn');
+  const authMsg = el.querySelector('#authMsg');
+  const stepEmail = el.querySelector('#step-email');
+  const stepOtp = el.querySelector('#step-otp');
 
   stepEmail.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -129,8 +131,8 @@ export async function loginPage() {
 
   // ─── Step 2: OTP verify ───────────────────────────────────────────────────
   const otpInput = el.querySelector('#otpInput');
-  const otpBtn   = el.querySelector('#otpBtn');
-  const otpMsg   = el.querySelector('#otpMsg');
+  const otpBtn = el.querySelector('#otpBtn');
+  const otpMsg = el.querySelector('#otpMsg');
 
   stepOtp.addEventListener('submit', async (e) => {
     e.preventDefault();

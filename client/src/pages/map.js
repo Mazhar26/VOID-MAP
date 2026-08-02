@@ -13,6 +13,7 @@ import { renderUserPins } from '../map/userPins.js';
 import { encodeGeohash } from '../lib/geohash.js';
 import { forwardGeocode } from '../lib/geocode.js';
 import { api } from '../api.js';
+import { showGatedModal } from '../components/gatedModal.js';
 
 export async function mapPage() {
   const el = document.createElement('div');
@@ -23,15 +24,9 @@ export async function mapPage() {
     <div class="map-controls">
       <button class="map-back-btn" id="backBtn">← Home</button>
       <input class="map-search" id="mapSearch" type="text" placeholder="Search a place…" aria-label="Search location">
-      <button class="layer-btn active" id="btnLive" data-layer="live">📡 Live</button>
+      <button class="layer-btn" id="btnLive" data-layer="live">📡 Live</button>
       <button class="layer-btn active" id="btnMine" data-layer="mine">📌 My Pins</button>
       <button class="layer-btn active" id="btnPublic" data-layer="public">⭐ Community</button>
-    </div>
-
-    <!-- Unauthenticated Guest Floating Banner -->
-    <div id="guestMapBanner" style="display:none;position:absolute;top:5rem;left:50%;transform:translateX(-50%);z-index:900;background:rgba(14,18,36,0.85);border:1px solid rgba(255,92,0,0.4);border-radius:30px;padding:0.6rem 1.4rem;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,0.5);display:flex;align-items:center;gap:0.8rem;">
-      <span style="font-size:0.85rem;color:var(--text-secondary);">🔒 Guest Mode — Sign in to save custom quiet spots</span>
-      <button id="guestSignInBtn" class="hs-nav-cta" style="padding:0.35rem 1rem;font-size:0.78rem;">SIGN IN</button>
     </div>
 
     <!-- Map container -->
@@ -39,10 +34,19 @@ export async function mapPage() {
 
     <!-- Legend -->
     <div class="map-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#64ffb4"></div> Very Quiet</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#7ccfff"></div> Quiet</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ffd764"></div> Moderate</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ff6b8a"></div> Loud</div>
+      <div class="legend-title">Noise Level</div>
+      <div class="legend-scale">
+        <span class="legend-dot bucket-very_quiet" title="Below 40 dB"></span> &lt;40 dB
+        <span class="legend-dot bucket-quiet" title="40–55 dB"></span> 40–55
+        <span class="legend-dot bucket-moderate" title="55–70 dB"></span> 55–70
+        <span class="legend-dot bucket-loud" title="&gt;70 dB"></span> &gt;70 dB
+      </div>
+    </div>
+
+    <!-- Guest Map Overlay Banner -->
+    <div id="guestMapBanner" style="display:none;position:absolute;top:5rem;left:50%;transform:translateX(-50%);z-index:900;background:rgba(14,18,36,0.85);border:1px solid rgba(255,92,0,0.4);border-radius:30px;padding:0.6rem 1.4rem;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,0.5);display:flex;align-items:center;gap:0.8rem;">
+      <span style="font-size:0.85rem;color:var(--text-secondary);">🔒 Guest Mode — Sign in to save custom quiet spots</span>
+      <button id="guestSignInBtn" class="hs-nav-cta" style="padding:0.35rem 1rem;font-size:0.78rem;">SIGN IN</button>
     </div>
   `;
 
@@ -52,7 +56,7 @@ export async function mapPage() {
       const mapContainer = el.querySelector('#map');
       if (!mapContainer) return;
 
-      const { map } = await initMap(mapContainer);
+      const { map, userMarker } = await initMap(mapContainer);
 
       // Force Leaflet to recalculate its dimensions now that it is in the DOM
       setTimeout(() => {
@@ -61,16 +65,14 @@ export async function mapPage() {
 
       // ─── Layer state ────────────────────────────────────────────────────
       const layers = { live: null, mine: null, public: null };
-      const visible = { live: true, mine: true, public: true };
+      const visible = { live: false, mine: true, public: true };
       const token = localStorage.getItem('voidmap_token');
 
       const guestBanner = el.querySelector('#guestMapBanner');
       if (!token && guestBanner) {
         guestBanner.style.display = 'flex';
         el.querySelector('#guestSignInBtn')?.addEventListener('click', () => {
-          import('../components/gatedModal.js').then(({ showGatedModal }) => {
-            showGatedModal('Unlock Full Map & Save Spots', 'Sign in with your Gmail address to explore public community spots and pin your own quiet sanctuaries.');
-          });
+          showGatedModal('Unlock Full Map & Save Spots', 'Sign in with your Gmail address to explore public community spots and pin your own quiet sanctuaries.');
         });
       }
 
@@ -87,8 +89,8 @@ export async function mapPage() {
               latitude: center.lat,
               longitude: center.lng,
               noise_bucket: data.quiet_score > 0.75 ? 'very_quiet' :
-                            data.quiet_score > 0.5  ? 'quiet' :
-                            data.quiet_score > 0.3  ? 'moderate' : 'loud',
+                data.quiet_score > 0.5 ? 'quiet' :
+                  data.quiet_score > 0.3 ? 'moderate' : 'loud',
               created_at: new Date().toISOString(),
             }]);
           }
@@ -134,11 +136,31 @@ export async function mapPage() {
       await Promise.allSettled([loadLiveSignals(), loadMyPins(), loadPublicPins()]);
 
       // ─── Layer toggles ──────────────────────────────────────────────────
+      // Remove userMarker initially until btnLive is clicked
+      if (userMarker) map.removeLayer(userMarker);
+
       el.querySelectorAll('.layer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const layer = btn.dataset.layer;
           visible[layer] = !visible[layer];
           btn.classList.toggle('active', visible[layer]);
+
+          // Handle Live GPS Location Marker Toggle
+          if (layer === 'live') {
+            if (visible.live) {
+              if (userMarker) {
+                userMarker.addTo(map);
+                map.flyTo(userMarker.getLatLng(), 14); // Smoothly fly to user's position
+              }
+              loadLiveSignals();
+            } else {
+              if (userMarker) map.removeLayer(userMarker);
+              if (layers.live) map.removeLayer(layers.live);
+            }
+            return;
+          }
+
+          // Handle My Pins & Community Pins Toggles
           if (layers[layer]) {
             if (visible[layer]) {
               layers[layer].addTo(map);
@@ -148,6 +170,7 @@ export async function mapPage() {
           }
         });
       });
+
 
       // ─── Search bar ─────────────────────────────────────────────────────
       const searchInput = el.querySelector('#mapSearch');
@@ -179,7 +202,7 @@ export async function mapPage() {
       const backBtn = el.querySelector('#backBtn');
       if (backBtn) {
         backBtn.addEventListener('click', () => {
-          window.location.hash = '#/';
+          window.location.hash = token ? '#/home' : '#/';
         });
       }
 

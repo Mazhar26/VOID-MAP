@@ -41,11 +41,12 @@ export async function adminPage() {
             <th>Email</th>
             <th>Role</th>
             <th>Registered</th>
-            <th>Saved Locations</th>
+            <th>Saved Spots</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="usersTableBody">
-          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem;">Fetching database records…</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">Fetching database records…</td></tr>
         </tbody>
       </table>
     </div>
@@ -127,18 +128,72 @@ export async function adminPage() {
       if (!tbody) return;
 
       if (data.users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem;">No users registered yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">No users registered yet.</td></tr>`;
         return;
       }
 
+      const currentUser = (() => { try { return JSON.parse(localStorage.getItem('voidmap_user')); } catch { return null; } })();
+
       tbody.innerHTML = data.users.map(u => `
-        <tr>
+        <tr data-user-id="${u.id}" data-email="${escapeHtml(u.email)}">
           <td>${escapeHtml(u.email)}</td>
           <td>${u.isAdmin ? '<span class="badge-admin">Admin</span>' : '<span style="color:var(--text-secondary)">User</span>'}</td>
           <td>${new Date(u.createdAt).toLocaleDateString()}</td>
           <td>${u.locationCount}</td>
+          <td>
+            ${currentUser?.id === u.id 
+              ? '<span style="font-size:0.75rem;color:var(--text-muted);">Current User</span>' 
+              : `
+                <button class="btn-mini btn-role" data-action="toggle-role" data-is-admin="${u.isAdmin}" style="margin-right:0.4rem;">
+                  ${u.isAdmin ? 'Demote' : 'Promote'}
+                </button>
+                <button class="btn-mini btn-delete-user" data-action="delete-user" style="color:var(--error);border-color:rgba(255,59,107,0.3);">
+                  Delete
+                </button>
+              `}
+          </td>
         </tr>
       `).join('');
+
+      // Event delegation for table action buttons
+      tbody.onclick = async (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+
+        const row = btn.closest('tr');
+        const userId = row.dataset.userId;
+        const email = row.dataset.email;
+        const action = btn.dataset.action;
+
+        if (action === 'delete-user') {
+          if (confirm(`Are you sure you want to delete user "${email}"? This will permanently remove their saved locations.`)) {
+            btn.disabled = true;
+            btn.textContent = 'Deleting…';
+            try {
+              await api.deleteAdminUser(userId);
+              loadUsers(currentPage);
+              loadDashboard();
+            } catch (err) {
+              alert(`Could not delete user: ${err.message}`);
+              btn.disabled = false;
+              btn.textContent = 'Delete';
+            }
+          }
+        } else if (action === 'toggle-role') {
+          const currentIsAdmin = btn.dataset.isAdmin === 'true';
+          const newRole = !currentIsAdmin;
+          btn.disabled = true;
+          btn.textContent = 'Updating…';
+          try {
+            await api.updateAdminUserRole(userId, newRole);
+            loadUsers(currentPage);
+          } catch (err) {
+            alert(`Could not update role: ${err.message}`);
+            btn.disabled = false;
+            btn.textContent = currentIsAdmin ? 'Demote' : 'Promote';
+          }
+        }
+      };
 
       // Update table pagination details
       const pageInfo = el.querySelector('#pageInfo');

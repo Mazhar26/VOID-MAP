@@ -109,4 +109,10 @@ export const api = {
 
   getAdminUsers: (page = 1) =>
     request(`/api/admin/users?page=${page}`),
+
+  deleteAdminUser: (userId) =>
+    request(`/api/admin/users/${userId}`, { method: 'DELETE' }),
+
+  updateAdminUserRole: (userId, isAdmin) =>
+    request(`/api/admin/users/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ isAdmin }) }),
 };

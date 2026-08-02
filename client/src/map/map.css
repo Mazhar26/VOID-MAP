@@ -37,10 +37,10 @@
 /* Search bar */
 .map-search {
   padding: 0.55rem 1rem;
-  background: rgba(2, 3, 8, 0.85);
+  background: rgb(246, 246, 247);
   border: 1px solid rgba(255, 215, 100, 0.3);
   border-radius: 30px;
-  color: #fff;
+  color: #000000;
   font-family: inherit;
   font-size: 0.85rem;
   width: 260px;
@@ -50,28 +50,55 @@
 }
 
 .map-search:focus {
-  border-color: rgba(255, 215, 100, 0.7);
+  border-color: rgb(255, 255, 255);
 }
 
 /* Layer toggle buttons */
 .layer-btn {
   padding: 0.45rem 0.9rem;
-  background: rgba(2, 3, 8, 0.85);
+  background: rgb(255, 255, 255);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 30px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--accent);
   font-family: inherit;
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   backdrop-filter: blur(12px);
-  transition: all var(--transition);
+  opacity: 0.75;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.layer-btn:hover {
+  opacity: 1;
+  transform: translate(-1px);
+  background: rgba(255, 255, 255, 0.9);
+  color: #1c1917;
 }
 
 .layer-btn.active {
-  border-color: rgba(255, 215, 100, 0.6);
-  color: var(--accent);
-  background: rgba(255, 215, 100, 0.08);
+  opacity: 1;
+  background: #ffffff;
+  color: #e65100;
+  border: 2px solid #e65100;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(230, 81, 0, 0.25), 0 0 10px rgba(230, 81, 0, 0.12);
+  animation: layerPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes layerPop {
+  0% {
+    transform: scale(0.9);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Back-to-home button */
