@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786788851607,
+      "tag": "0000_nostalgic_skaar",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786789053313,
+      "tag": "0001_dapper_fabian_cortez",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786789085592,
+      "tag": "0002_steep_midnight",
+      "breakpoints": true
+    }
+  ]
+}
